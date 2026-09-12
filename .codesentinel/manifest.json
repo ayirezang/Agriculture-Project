@@ -1,0 +1,24 @@
+{
+  "version": "1.0.0",
+  "createdAt": "2026-09-12T17:47:41.982Z",
+  "updatedAt": "2026-09-12T17:47:41.982Z",
+  "projectName": "agriconnect-ai",
+  "isActive": true,
+  "currentStep": "planning",
+  "installedComponents": [],
+  "generatedFiles": [],
+  "chatHistory": [],
+  "apiUsage": {
+    "totalTokens": 0,
+    "totalCalls": 0,
+    "estimatedCost": 0
+  },
+  "buildSteps": {
+    "scaffold": false,
+    "uiLibrary": false,
+    "theme": false,
+    "components": false,
+    "pages": false,
+    "navigation": false
+  }
+}

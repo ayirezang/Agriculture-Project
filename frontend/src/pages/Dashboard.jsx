@@ -173,7 +173,7 @@ export default function Dashboard({ user, onNavigate }) {
           </Badge>
 
           <p className="mt-5 text-sm font-bold text-emerald-600">
-            Welcome back, {user?.name || "Farmer"} 👋
+            Welcome back, {user?.name || "Farmer"} 
           </p>
 
           <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">

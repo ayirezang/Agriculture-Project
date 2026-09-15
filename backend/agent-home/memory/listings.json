@@ -1,0 +1,10 @@
+{
+  "crop": "Maize",
+  "quantity": 10,
+  "unit": "bags",
+  "minPrice": 3.3,
+  "location": {
+    "town": "Koforidua",
+    "region": "Eastern Region"
+  }
+}

@@ -1,11 +1,11 @@
 const mongoose = require("mongoose");
 
-const listingSchema = new mongoose.Schema(
+const buyerRequestSchema = new mongoose.Schema(
   {
     // ==========================================
-    // FARMER WHO OWNS THE LISTING
+    // BUYER WHO CREATED THE REQUEST
     // ==========================================
-    farmer: {
+    buyer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
@@ -13,7 +13,7 @@ const listingSchema = new mongoose.Schema(
     },
 
     // ==========================================
-    // PRODUCE INFORMATION
+    // PRODUCE REQUIRED
     // ==========================================
     crop: {
       type: String,
@@ -34,15 +34,17 @@ const listingSchema = new mongoose.Schema(
       default: "kg",
     },
 
-    // Farmer's minimum acceptable price
-    minPrice: {
+    // ==========================================
+    // BUYER'S MAXIMUM PRICE
+    // ==========================================
+    maxPrice: {
       type: Number,
       required: true,
       min: 0,
     },
 
     // ==========================================
-    // FARM LOCATION
+    // BUYER LOCATION
     // ==========================================
     location: {
       town: {
@@ -67,7 +69,16 @@ const listingSchema = new mongoose.Schema(
     },
 
     // ==========================================
-    // ADDITIONAL INFORMATION
+    // PICKUP DISTANCE
+    // ==========================================
+    pickupRadius: {
+      type: Number,
+      default: 50,
+      min: 1,
+    },
+
+    // ==========================================
+    // OPTIONAL DETAILS
     // ==========================================
     description: {
       type: String,
@@ -75,25 +86,18 @@ const listingSchema = new mongoose.Schema(
       default: "",
     },
 
+    requiredBy: {
+      type: Date,
+    },
+
     // ==========================================
-    // LISTING STATUS
+    // REQUEST STATUS
     // ==========================================
     status: {
       type: String,
-      enum: ["active", "sold", "cancelled"],
-      default: "active",
+      enum: ["open", "matched", "fulfilled", "cancelled"],
+      default: "open",
       index: true,
-    },
-
-    // ==========================================
-    // AVAILABILITY
-    // ==========================================
-    harvestDate: {
-      type: Date,
-    },
-
-    availableUntil: {
-      type: Date,
     },
   },
   {
@@ -102,25 +106,22 @@ const listingSchema = new mongoose.Schema(
 );
 
 // ==========================================
-// INDEXES FOR FASTER BUYER SEARCH
+// INDEXES
 // ==========================================
 
-// Helps search active listings by crop
-listingSchema.index({
+// Quickly find open requests for a particular crop
+buyerRequestSchema.index({
   crop: 1,
   status: 1,
 });
 
-// Helps search listings by location
-listingSchema.index({
+// Quickly find buyer requests by location
+buyerRequestSchema.index({
   "location.town": 1,
   "location.region": 1,
 });
 
-// Helps search listings by price
-listingSchema.index({
-  minPrice: 1,
-  status: 1,
-});
-
-module.exports = mongoose.model("Listing", listingSchema);
+module.exports = mongoose.model(
+  "BuyerRequest",
+  buyerRequestSchema
+);

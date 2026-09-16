@@ -29,12 +29,15 @@ const userSchema = new mongoose.Schema(
       minlength: 6,
     },
 
+    // User role
     role: {
       type: String,
       enum: ["farmer", "buyer", "admin"],
+      required: true,
       default: "farmer",
     },
 
+    // User location
     location: {
       town: {
         type: String,
@@ -55,6 +58,7 @@ const userSchema = new mongoose.Schema(
       },
     },
 
+    // Allows us to disable an account without deleting it
     isActive: {
       type: Boolean,
       default: true,

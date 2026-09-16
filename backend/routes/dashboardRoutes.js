@@ -8,9 +8,21 @@ const {
   protect,
 } = require("../middleware/authMiddleware");
 
+const {
+  authorizeRoles,
+} = require("../middleware/roleMiddleware");
+
 const router = express.Router();
 
-// GET logged-in user's dashboard
-router.get("/", protect, getDashboard);
+// ========================================
+// FARMER DASHBOARD
+// Only logged-in farmers can access this
+// ========================================
+router.get(
+  "/",
+  protect,
+  authorizeRoles("farmer"),
+  getDashboard
+);
 
 module.exports = router;

@@ -16,7 +16,7 @@ import SectionHeader from "../components/ui/SectionHeader";
 
 const API_URL = "http://localhost:5000/api";
 
-export default function Buyers() {
+export default function Buyers({ onRegisterBuyer }) {
   const [buyers, setBuyers] = useState([]);
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(null);
@@ -412,9 +412,10 @@ export default function Buyers() {
 
             <button
               type="button"
-              onClick={() =>
-                setRegisterOpen(false)
-              }
+              onClick={() => {
+                setRegisterOpen(false);
+                onRegisterBuyer?.();
+              }}
               className="mt-4 w-full rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white"
             >
               Continue to registration

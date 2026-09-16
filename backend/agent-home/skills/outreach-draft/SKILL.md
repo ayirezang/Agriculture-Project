@@ -19,6 +19,7 @@ to contact that buyer.
    Where and when it can be picked up (listing location)
    The price you're offering (must be >= minPrice) — or ask the buyer
    to confirm theirs if it's already above the floor
+   Prices are in Ghana Cedis (GH₵). Never write USD.
    A clear next step (confirm quantity, pickup, or a call time)
 4. Keep the tone respectful and plain. One ask, one price, one next step.
 5. Show the draft to the farmer for approval. You DO NOT send it yourself.

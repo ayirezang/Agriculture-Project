@@ -1,29 +1,11 @@
 [
   {
-    "id": 1,
-    "name": "Eastern Grains Ltd.",
-    "crop": "Maize",
-    "pricePerKg": 3.55,
-    "quantity": 12,
+    "id": "6aaa962078ce485e61fc25f6",
+    "name": "buyer 1",
+    "crop": "maize",
+    "pricePerKg": 3.5,
+    "quantity": 10,
     "town": "Koforidua",
-    "verified": true
-  },
-  {
-    "id": 2,
-    "name": "Golden Harvest Foods",
-    "crop": "Maize",
-    "pricePerKg": 3.48,
-    "quantity": 30,
-    "town": "Accra",
-    "verified": true
-  },
-  {
-    "id": 3,
-    "name": "Nana K. Trading",
-    "crop": "Maize",
-    "pricePerKg": 3.2,
-    "quantity": 8,
-    "town": "Nkawkaw",
     "verified": true
   }
 ]

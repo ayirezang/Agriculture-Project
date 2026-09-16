@@ -27,44 +27,66 @@ import Register from "./pages/Register";
 // SIDEBAR NAVIGATION
 // ==========================================
 
-const navigation = [
-  {
-    id: "dashboard",
-    label: "Dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    id: "sell",
-    label: "Sell Produce",
-    icon: Package,
-  },
-  {
-    id: "marketplace",
-    label: "Marketplace",
-    icon: Store,
-  },
-  {
-    id: "agent",
-    label: "AI Agent",
-    icon: Bot,
-    badge: "Live",
-  },
-  {
-    id: "buyers",
-    label: "Buyer Network",
-    icon: Users,
-  },
-  {
-    id: "analytics",
-    label: "Analytics",
-    icon: BarChart3,
-  },
-  {
-    id: "settings",
-    label: "Settings",
-    icon: Settings,
-  },
-];
+const navigation = (role) => {
+  const farmerPages = [
+    {
+      id: "dashboard",
+      label: "Dashboard",
+      icon: LayoutDashboard,
+    },
+    {
+      id: "sell",
+      label: "Sell Produce",
+      icon: Package,
+    },
+    {
+      id: "agent",
+      label: "AI Agent",
+      icon: Bot,
+      badge: "Live",
+    },
+    {
+      id: "analytics",
+      label: "Analytics",
+      icon: BarChart3,
+    },
+  ];
+
+  const buyerPages = [
+    {
+      id: "marketplace",
+      label: "Marketplace",
+      icon: Store,
+    },
+  ];
+
+  const sharedPages = [
+    {
+      id: "buyers",
+      label: "Buyer Network",
+      icon: Users,
+    },
+    {
+      id: "settings",
+      label: "Settings",
+      icon: Settings,
+    },
+  ];
+
+  if (role === "buyer") {
+    return [...buyerPages, ...sharedPages];
+  }
+
+  return [
+    ...farmerPages,
+    {
+      id: "marketplace",
+      label: "Marketplace",
+      icon: Store,
+    },
+    ...sharedPages,
+  ];
+};
 
 export default function App() {
   // ==========================================
@@ -116,12 +138,15 @@ export default function App() {
   // LOGIN
   // ==========================================
 
+  const landingPageFor = (role) =>
+    role === "buyer" ? "marketplace" : "dashboard";
+
   const handleLogin = (loggedInUser) => {
     console.log("Logged in user:", loggedInUser);
 
     setUser(loggedInUser);
     setAuthPage("login");
-    setActivePage("dashboard");
+    setActivePage(landingPageFor(loggedInUser?.role));
     setMobileOpen(false);
   };
 
@@ -134,6 +159,22 @@ export default function App() {
 
     setUser(registeredUser);
     setAuthPage("login");
+    setActivePage(landingPageFor(registeredUser?.role));
+    setMobileOpen(false);
+  };
+
+  // ==========================================
+  // GO TO REGISTRATION (from Buyer Network)
+  // Logs out and shows the register page so a
+  // buyer account can be created.
+  // ==========================================
+
+  const goToRegister = () => {
+    localStorage.removeItem("agriconnect_user");
+    localStorage.removeItem("agriconnect_token");
+
+    setUser(null);
+    setAuthPage("register");
     setActivePage("dashboard");
     setMobileOpen(false);
   };
@@ -223,13 +264,13 @@ export default function App() {
         // AI AGENT
         // ======================================
 
-        agent: <AgentPage />,
+        agent: <AgentPage user={user} onNavigate={navigate} />,
 
         // ======================================
         // BUYER NETWORK
         // ======================================
 
-        buyers: <Buyers />,
+        buyers: <Buyers onRegisterBuyer={goToRegister} />,
 
         // ======================================
         // ANALYTICS
@@ -295,7 +336,7 @@ export default function App() {
       ====================================== */}
 
       <Sidebar
-        navigation={navigation}
+        navigation={navigation(user?.role)}
         activePage={activePage}
         setActivePage={navigate}
         mobileOpen={mobileOpen}

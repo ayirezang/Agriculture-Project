@@ -1,9 +1,9 @@
 [
   {
-    "id": "6aaa962078ce485e61fc25f6",
-    "name": "buyer 1",
-    "crop": "maize",
-    "pricePerKg": 3.5,
+    "id": "6aaa9f731de32211f206f6a1",
+    "name": "Abigail Appiah",
+    "crop": "millet",
+    "pricePerKg": 50,
     "quantity": 10,
     "town": "Koforidua",
     "verified": true

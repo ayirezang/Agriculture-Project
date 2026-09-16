@@ -1,0 +1,8 @@
+{
+  "ext": "js,mjs,cjs,json",
+  "ignore": [
+    "agent-home/**",
+    "agent-home",
+    "node_modules/**"
+  ]
+}

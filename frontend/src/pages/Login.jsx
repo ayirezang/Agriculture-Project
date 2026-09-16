@@ -5,34 +5,57 @@ import {
   UserRound,
   ArrowRight,
   ShieldCheck,
+  CheckCircle2,
 } from "lucide-react";
 
-export default function Login({ onLogin, onSwitchToRegister }) {
+export default function Login({
+  onLogin,
+  onSwitchToRegister,
+}) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
   const [error, setError] = useState("");
+
   const [loading, setLoading] = useState(false);
+
+  // Controls the successful login message
+  const [loginSuccess, setLoginSuccess] =
+    useState(false);
 
   const submit = async (e) => {
     e.preventDefault();
 
     setError("");
+    setLoginSuccess(false);
+
+    // ==========================================
+    // VALIDATE FORM
+    // ==========================================
 
     if (!email.trim() || !password.trim()) {
-      setError("Enter your email and password.");
+      setError(
+        "Enter your email and password."
+      );
       return;
     }
 
     try {
       setLoading(true);
 
+      // ========================================
+      // LOGIN REQUEST
+      // ========================================
+
       const response = await fetch(
         "http://localhost:5000/api/auth/login",
         {
           method: "POST",
+
           headers: {
             "Content-Type": "application/json",
           },
+
           body: JSON.stringify({
             email: email.trim(),
             password: password,
@@ -42,15 +65,34 @@ export default function Login({ onLogin, onSwitchToRegister }) {
 
       const data = await response.json();
 
+      // ========================================
+      // LOGIN FAILED
+      // ========================================
+
       if (!response.ok || !data.success) {
-        setError(data.message || "Invalid email or password.");
+        setError(
+          data.message ||
+            "Invalid email or password."
+        );
+
         return;
       }
 
+      // ========================================
+      // CHECK TOKEN
+      // ========================================
+
       if (!data.token) {
-        setError("Login failed. No authentication token received.");
+        setError(
+          "Login failed. No authentication token received."
+        );
+
         return;
       }
+
+      // ========================================
+      // SAVE LOGIN INFORMATION
+      // ========================================
 
       localStorage.setItem(
         "agriconnect_token",
@@ -62,9 +104,24 @@ export default function Login({ onLogin, onSwitchToRegister }) {
         JSON.stringify(data.user)
       );
 
-      onLogin(data.user);
+      // ========================================
+      // SHOW SUCCESS MESSAGE
+      // ========================================
+
+      setLoginSuccess(true);
+
+      // ========================================
+      // WAIT BRIEFLY THEN OPEN HOME
+      // ========================================
+
+      setTimeout(() => {
+        onLogin(data.user);
+      }, 1200);
     } catch (err) {
-      console.error("Login error:", err);
+      console.error(
+        "Login error:",
+        err
+      );
 
       setError(
         "Unable to connect to the server. Make sure the backend is running on port 5000."
@@ -78,11 +135,15 @@ export default function Login({ onLogin, onSwitchToRegister }) {
     <main className="min-h-screen bg-[#f7faf8] px-4 py-8 sm:px-6">
       <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-6xl items-center gap-10 lg:grid-cols-2">
 
-        {/* LEFT SIDE */}
+        {/* =====================================
+            LEFT SIDE
+        ====================================== */}
+
         <section className="hidden lg:block">
           <div className="rounded-[2.5rem] border border-emerald-100 bg-emerald-50 p-10">
 
-            {/* Logo */}
+            {/* LOGO */}
+
             <div className="flex items-center gap-3">
               <span className="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-600 text-white shadow-lg">
                 <Sprout size={25} />
@@ -99,7 +160,8 @@ export default function Login({ onLogin, onSwitchToRegister }) {
               </div>
             </div>
 
-            {/* Heading */}
+            {/* HEADING */}
+
             <h2 className="mt-14 max-w-xl text-5xl font-black leading-tight tracking-tight text-slate-900">
               Turn your harvest into a{" "}
               <span className="text-emerald-600">
@@ -108,12 +170,14 @@ export default function Login({ onLogin, onSwitchToRegister }) {
             </h2>
 
             <p className="mt-5 max-w-xl text-base leading-7 text-slate-600">
-              Your AI sales agent searches buyers, ranks offers
-              and prepares bounded negotiations so you can focus
-              on your farm.
+              Your AI sales agent searches buyers,
+              ranks offers and prepares bounded
+              negotiations so you can focus on
+              your farm.
             </p>
 
-            {/* Features */}
+            {/* FEATURES */}
+
             <div className="mt-8 grid gap-3">
               {[
                 "Verified buyer network",
@@ -138,12 +202,19 @@ export default function Login({ onLogin, onSwitchToRegister }) {
           </div>
         </section>
 
-        {/* LOGIN FORM */}
+        {/* =====================================
+            LOGIN FORM
+        ====================================== */}
+
         <section className="mx-auto w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-900/5 sm:p-8">
 
-          {/* Mobile Logo */}
+          {/* ===================================
+              MOBILE LOGO
+          ==================================== */}
+
           <div className="mb-8 lg:hidden">
             <div className="flex items-center gap-3">
+
               <span className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-600 text-white">
                 <Sprout size={23} />
               </span>
@@ -157,10 +228,14 @@ export default function Login({ onLogin, onSwitchToRegister }) {
                   AI Marketplace
                 </p>
               </div>
+
             </div>
           </div>
 
-          {/* Header */}
+          {/* ===================================
+              HEADER
+          ==================================== */}
+
           <p className="text-xs font-bold uppercase tracking-[.16em] text-emerald-600">
             Welcome back
           </p>
@@ -170,19 +245,28 @@ export default function Login({ onLogin, onSwitchToRegister }) {
           </h2>
 
           <p className="mt-2 text-sm leading-6 text-slate-500">
-            Access your listings, buyer matches and AI sales agent.
+            Access your listings, buyer matches
+            and AI sales agent.
           </p>
 
-          {/* FORM */}
-          <form onSubmit={submit} className="mt-7 space-y-4">
+          {/* ===================================
+              FORM
+          ==================================== */}
+
+          <form
+            onSubmit={submit}
+            className="mt-7 space-y-4"
+          >
 
             {/* EMAIL */}
+
             <label className="block">
               <span className="text-xs font-bold text-slate-600">
                 Email
               </span>
 
               <div className="mt-2 flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3 focus-within:border-emerald-500">
+
                 <UserRound
                   size={17}
                   className="text-slate-400"
@@ -192,23 +276,31 @@ export default function Login({ onLogin, onSwitchToRegister }) {
                   type="email"
                   value={email}
                   onChange={(e) => {
-                    setEmail(e.target.value);
+                    setEmail(
+                      e.target.value
+                    );
+
                     setError("");
+                    setLoginSuccess(false);
                   }}
                   placeholder="you@example.com"
                   className="w-full bg-transparent text-sm outline-none"
                   autoComplete="email"
+                  disabled={loading || loginSuccess}
                 />
+
               </div>
             </label>
 
             {/* PASSWORD */}
+
             <label className="block">
               <span className="text-xs font-bold text-slate-600">
                 Password
               </span>
 
               <div className="mt-2 flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3 focus-within:border-emerald-500">
+
                 <LockKeyhole
                   size={17}
                   className="text-slate-400"
@@ -218,49 +310,107 @@ export default function Login({ onLogin, onSwitchToRegister }) {
                   type="password"
                   value={password}
                   onChange={(e) => {
-                    setPassword(e.target.value);
+                    setPassword(
+                      e.target.value
+                    );
+
                     setError("");
+                    setLoginSuccess(false);
                   }}
                   placeholder="••••••••"
                   className="w-full bg-transparent text-sm outline-none"
                   autoComplete="current-password"
+                  disabled={loading || loginSuccess}
                 />
+
               </div>
             </label>
 
-            {/* ERROR */}
-            {error && (
+            {/* =================================
+                ERROR MESSAGE
+            ================================== */}
+
+            {error && !loginSuccess && (
               <div className="rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">
                 {error}
               </div>
             )}
 
-            {/* LOGIN BUTTON */}
+            {/* =================================
+                SUCCESS MESSAGE
+            ================================== */}
+
+            {loginSuccess && (
+              <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">
+
+                <CheckCircle2
+                  size={20}
+                  className="shrink-0 text-emerald-600"
+                />
+
+                <div>
+                  <p>
+                    Sign in successful!
+                  </p>
+
+                  <p className="text-xs font-medium text-emerald-600 mt-0.5">
+                    Opening your home page...
+                  </p>
+                </div>
+
+              </div>
+            )}
+
+            {/* =================================
+                LOGIN BUTTON
+            ================================== */}
+
             <button
               type="submit"
-              disabled={loading}
+              disabled={
+                loading ||
+                loginSuccess
+              }
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loading ? "Signing in..." : "Sign in"}
 
-              {!loading && <ArrowRight size={17} />}
+              {loginSuccess
+                ? "Opening home..."
+                : loading
+                ? "Signing in..."
+                : "Sign in"}
+
+              {!loading &&
+                !loginSuccess && (
+                  <ArrowRight size={17} />
+                )}
+
             </button>
+
           </form>
 
-          {/* SIGN UP BUTTON */}
+          {/* ===================================
+              SIGN UP BUTTON
+          ==================================== */}
+
           <button
             type="button"
             onClick={onSwitchToRegister}
-            className="mt-4 w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+            disabled={loading || loginSuccess}
+            className="mt-4 w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Don't have an account? Sign up
           </button>
 
-          {/* SECURITY MESSAGE */}
+          {/* ===================================
+              SECURITY MESSAGE
+          ==================================== */}
+
           <p className="mt-6 text-center text-[11px] leading-5 text-slate-400">
-            Your account is securely authenticated through the
-            AgriConnect backend.
+            Your account is securely authenticated
+            through the AgriConnect backend.
           </p>
+
         </section>
       </div>
     </main>

@@ -2,6 +2,9 @@ const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema(
   {
+    // ==========================================
+    // BASIC USER INFORMATION
+    // ==========================================
     name: {
       type: String,
       required: true,
@@ -29,15 +32,19 @@ const userSchema = new mongoose.Schema(
       minlength: 6,
     },
 
-    // User role
+    // ==========================================
+    // USER ROLE
+    // ONLY FARMER OR BUYER
+    // ==========================================
     role: {
       type: String,
-      enum: ["farmer", "buyer", "admin"],
+      enum: ["farmer", "buyer"],
       required: true,
-      default: "farmer",
     },
 
-    // User location
+    // ==========================================
+    // USER LOCATION
+    // ==========================================
     location: {
       town: {
         type: String,
@@ -58,7 +65,9 @@ const userSchema = new mongoose.Schema(
       },
     },
 
-    // Allows us to disable an account without deleting it
+    // ==========================================
+    // ACCOUNT STATUS
+    // ==========================================
     isActive: {
       type: Boolean,
       default: true,

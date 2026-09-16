@@ -1,15 +1,16 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+
 const User = require("../models/User");
 
 // ==========================================
-// GENERATE JWT TOKEN
+// CREATE JWT TOKEN
 // ==========================================
-const generateToken = (userId, role) => {
+const generateToken = (user) => {
   return jwt.sign(
     {
-      id: userId,
-      role,
+      id: user._id,
+      role: user.role,
     },
     process.env.JWT_SECRET,
     {
@@ -23,8 +24,6 @@ const generateToken = (userId, role) => {
 // ==========================================
 const registerUser = async (req, res) => {
   try {
-    console.log("REGISTER BODY:", req.body);
-
     const {
       name,
       email,
@@ -34,106 +33,102 @@ const registerUser = async (req, res) => {
       location,
     } = req.body;
 
-    // ------------------------------------------
+    // ==========================================
     // CHECK REQUIRED FIELDS
-    // ------------------------------------------
+    // ==========================================
     if (!name || !email || !phone || !password) {
       return res.status(400).json({
         success: false,
-        message:
-          "Name, email, phone and password are required",
+        message: "Name, email, phone and password are required",
       });
     }
 
-    // ------------------------------------------
-    // CHECK ROLE
-    // ------------------------------------------
+    // ==========================================
+    // ONLY FARMER AND BUYER ARE ALLOWED
+    // ==========================================
     if (!role || !["farmer", "buyer"].includes(role)) {
       return res.status(400).json({
         success: false,
-        message:
-          "Please select either farmer or buyer",
+        message: "Please select either farmer or buyer",
       });
     }
 
-    // ------------------------------------------
-    // CLEAN INPUT
-    // ------------------------------------------
-    const cleanName = name.trim();
-    const cleanEmail = email.trim().toLowerCase();
-    const cleanPhone = phone.trim();
-
-    if (!cleanName) {
+    // ==========================================
+    // CHECK PASSWORD LENGTH
+    // ==========================================
+    if (password.length < 6) {
       return res.status(400).json({
         success: false,
-        message: "Name cannot be empty",
+        message: "Password must be at least 6 characters",
       });
     }
 
-    // ------------------------------------------
-    // CHECK EMAIL
-    // ------------------------------------------
+    // ==========================================
+    // NORMALIZE EMAIL
+    // ==========================================
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // ==========================================
+    // CHECK IF EMAIL ALREADY EXISTS
+    // ==========================================
     const existingEmail = await User.findOne({
-      email: cleanEmail,
+      email: normalizedEmail,
     });
 
     if (existingEmail) {
       return res.status(400).json({
         success: false,
-        message:
-          "A user with this email already exists",
+        message: "A user with this email already exists",
       });
     }
 
-    // ------------------------------------------
-    // CHECK PHONE
-    // ------------------------------------------
+    // ==========================================
+    // CHECK IF PHONE ALREADY EXISTS
+    // ==========================================
     const existingPhone = await User.findOne({
-      phone: cleanPhone,
+      phone: phone.trim(),
     });
 
     if (existingPhone) {
       return res.status(400).json({
         success: false,
-        message:
-          "A user with this phone number already exists",
+        message: "A user with this phone number already exists",
       });
     }
 
-    // ------------------------------------------
+    // ==========================================
     // HASH PASSWORD
-    // ------------------------------------------
-    const hashedPassword = await bcrypt.hash(
-      password,
-      10
-    );
+    // ==========================================
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    // ------------------------------------------
+    // ==========================================
     // CREATE USER
-    // ------------------------------------------
+    // ==========================================
     const user = await User.create({
-      name: cleanName,
-      email: cleanEmail,
-      phone: cleanPhone,
+      name: name.trim(),
+      email: normalizedEmail,
+      phone: phone.trim(),
       password: hashedPassword,
       role,
-      location,
+      location: {
+        town: location?.town?.trim() || "",
+        region: location?.region?.trim() || "",
+        latitude: location?.latitude,
+        longitude: location?.longitude,
+      },
     });
 
-    // ------------------------------------------
-    // GENERATE TOKEN
-    // ------------------------------------------
-    const token = generateToken(
-      user._id,
-      user.role
-    );
+    // ==========================================
+    // CREATE JWT
+    // ==========================================
+    const token = generateToken(user);
 
-    // ------------------------------------------
-    // RESPONSE
-    // ------------------------------------------
+    // ==========================================
+    // RETURN USER WITHOUT PASSWORD
+    // ==========================================
     res.status(201).json({
       success: true,
-      message: "Account created successfully",
+      message: "Registration successful",
       token,
 
       user: {
@@ -146,26 +141,31 @@ const registerUser = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(
-      "Registration error:",
-      error
-    );
+    console.error("Registration error:", error);
 
-    // Handle duplicate MongoDB fields
+    // ==========================================
+    // HANDLE MONGOOSE DUPLICATE KEY ERROR
+    // ==========================================
     if (error.code === 11000) {
-      const duplicateField =
-        Object.keys(error.keyPattern || {})[0];
+      const duplicateField = Object.keys(error.keyPattern || {})[0];
 
       return res.status(400).json({
         success: false,
-        message: `A user with this ${duplicateField} already exists`,
+        message:
+          duplicateField === "email"
+            ? "A user with this email already exists"
+            : duplicateField === "phone"
+            ? "A user with this phone number already exists"
+            : "A user with this information already exists",
       });
     }
 
+    // ==========================================
+    // HANDLE OTHER ERRORS
+    // ==========================================
     res.status(500).json({
       success: false,
-      message:
-        "Server error during registration",
+      message: "Server error during registration",
     });
   }
 };
@@ -177,73 +177,73 @@ const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // ------------------------------------------
+    // ==========================================
     // CHECK REQUIRED FIELDS
-    // ------------------------------------------
+    // ==========================================
     if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message:
-          "Email and password are required",
+        message: "Email and password are required",
       });
     }
 
-    const cleanEmail = email.trim().toLowerCase();
-
-    // ------------------------------------------
+    // ==========================================
     // FIND USER
-    // ------------------------------------------
+    // ==========================================
     const user = await User.findOne({
-      email: cleanEmail,
+      email: email.toLowerCase().trim(),
     });
 
     if (!user) {
       return res.status(401).json({
         success: false,
-        message:
-          "Invalid email or password",
+        message: "Invalid email or password",
       });
     }
 
-    // ------------------------------------------
+    // ==========================================
     // CHECK ACCOUNT STATUS
-    // ------------------------------------------
+    // ==========================================
     if (!user.isActive) {
       return res.status(403).json({
         success: false,
-        message:
-          "Your account has been deactivated",
+        message: "Your account has been deactivated",
       });
     }
 
-    // ------------------------------------------
-    // CHECK PASSWORD
-    // ------------------------------------------
-    const isPasswordCorrect =
-      await bcrypt.compare(
-        password,
-        user.password
-      );
-
-    if (!isPasswordCorrect) {
-      return res.status(401).json({
+    // ==========================================
+    // CHECK ROLE
+    // ==========================================
+    if (!["farmer", "buyer"].includes(user.role)) {
+      return res.status(403).json({
         success: false,
-        message:
-          "Invalid email or password",
+        message: "Invalid account role. Please contact support.",
       });
     }
 
-    // ------------------------------------------
-    // GENERATE TOKEN
-    // ------------------------------------------
-    const token = generateToken(
-      user._id,
-      user.role
+    // ==========================================
+    // CHECK PASSWORD
+    // ==========================================
+    const passwordMatch = await bcrypt.compare(
+      password,
+      user.password
     );
 
-    // ------------------------------------------
-    // RESPONSE
-    // ------------------------------------------
+    if (!passwordMatch) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password",
+      });
+    }
+
+    // ==========================================
+    // CREATE JWT
+    // ==========================================
+    const token = generateToken(user);
+
+    // ==========================================
+    // RETURN USER + TOKEN
+    // ==========================================
     res.status(200).json({
       success: true,
       message: "Login successful",
@@ -259,19 +259,14 @@ const loginUser = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(
-      "Login error:",
-      error
-    );
+    console.error("Login error:", error);
 
     res.status(500).json({
       success: false,
-      message:
-        "Server error during login",
+      message: "Server error during login",
     });
   }
 };
-
 
 // ==========================================
 // GET ALL BUYERS
@@ -290,12 +285,20 @@ const getBuyers = async (req, res) => {
       name: buyer.name,
       email: buyer.email,
       phone: buyer.phone,
+
       type: "Buyer",
-      region: buyer.location?.region || "Location not provided",
+
+      region:
+        buyer.location?.region || "Location not provided",
+
       town: buyer.location?.town || "",
+
       deals: 0,
+
       rating: 0,
+
       crops: "Not specified",
+
       verified: "Registered",
     }));
 
@@ -315,7 +318,7 @@ const getBuyers = async (req, res) => {
 };
 
 // ==========================================
-// EXPORT
+// EXPORT CONTROLLERS
 // ==========================================
 module.exports = {
   registerUser,

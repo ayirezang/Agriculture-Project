@@ -28,8 +28,8 @@ let sessionPromise = null;
 async function createSession() {
   const modelRuntime = await ModelRuntime.create();
   const model =
-    modelRuntime.getModel("groq", "openai/gpt-oss-20b") ??
     modelRuntime.getModel("groq", "qwen/qwen3.8-27b") ??
+    modelRuntime.getModel("groq", "openai/gpt-oss-20b") ??
     (await modelRuntime.getAvailable()).find((m) => m.provider === "groq");
   if (!model) throw new Error("No Groq model found. Check GROQ_API_KEY.");
   const skillFiles = [
@@ -65,7 +65,7 @@ async function createSession() {
     resourceLoader: loader,
     tools: ["read", "write", "edit", "ls", "grep", "find"],
     sessionManager: SessionManager.inMemory(),
-    thinkingLevel: "minimal",
+    thinkingLevel: "off",
   });
   sessionPromise = session;
   return session;

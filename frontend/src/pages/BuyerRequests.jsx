@@ -10,7 +10,8 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-const API_URL = import.meta.env.VITE_API_URL || "";
+const API_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function BuyerRequests({ user, onNavigate }) {
   const [requests, setRequests] = useState([]);
@@ -49,8 +50,17 @@ export default function BuyerRequests({ user, onNavigate }) {
           return;
         }
 
+        // IMPORTANT:
+        // API_URL already contains /api
+        //
+        // Correct:
+        // /api/buyer-requests/my
+        //
+        // NOT:
+        // /api/api/buyer-requests/my
+
         const response = await fetch(
-          `${API_URL}/api/buyer-requests/my`,
+          `${API_URL}/buyer-requests/my`,
           {
             method: "GET",
             headers: {
@@ -62,7 +72,7 @@ export default function BuyerRequests({ user, onNavigate }) {
 
         const data = await response.json();
 
-        if (!response.ok) {
+        if (!response.ok || !data.success) {
           throw new Error(
             data?.message || "Failed to load your requests."
           );
@@ -95,7 +105,7 @@ export default function BuyerRequests({ user, onNavigate }) {
   // ==========================================
   // AUTO REFRESH
   //
-  // This checks periodically whether a farmer
+  // Checks periodically whether a farmer
   // has been matched.
   // ==========================================
 
@@ -133,8 +143,9 @@ export default function BuyerRequests({ user, onNavigate }) {
         return;
       }
 
+      // API_URL already contains /api
       const response = await fetch(
-        `${API_URL}/api/buyer-requests/${requestId}/cancel`,
+        `${API_URL}/buyer-requests/${requestId}/cancel`,
         {
           method: "PUT",
           headers: {
@@ -146,7 +157,7 @@ export default function BuyerRequests({ user, onNavigate }) {
 
       const data = await response.json();
 
-      if (!response.ok) {
+      if (!response.ok || !data.success) {
         throw new Error(
           data?.message || "Failed to cancel request."
         );
@@ -447,18 +458,13 @@ export default function BuyerRequests({ user, onNavigate }) {
 
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-6 pt-5 border-t border-slate-100">
                 <p className="text-xs text-slate-400">
-                  Posted{" "}
-                  {formatDate(request.createdAt)}
+                  Posted {formatDate(request.createdAt)}
                 </p>
 
                 <button
                   type="button"
-                  onClick={() =>
-                    handleCancel(request._id)
-                  }
-                  disabled={
-                    cancellingId === request._id
-                  }
+                  onClick={() => handleCancel(request._id)}
+                  disabled={cancellingId === request._id}
                   className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-red-200 text-red-600 font-semibold hover:bg-red-50 transition disabled:opacity-60"
                 >
                   {cancellingId === request._id ? (

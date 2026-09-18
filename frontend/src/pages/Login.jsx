@@ -6,6 +6,8 @@ import {
   ArrowRight,
   ShieldCheck,
   CheckCircle2,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 export default function Login({
@@ -14,14 +16,11 @@ export default function Login({
 }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const [error, setError] = useState("");
-
   const [loading, setLoading] = useState(false);
-
-  // Controls the successful login message
-  const [loginSuccess, setLoginSuccess] =
-    useState(false);
+  const [loginSuccess, setLoginSuccess] = useState(false);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -29,33 +28,21 @@ export default function Login({
     setError("");
     setLoginSuccess(false);
 
-    // ==========================================
-    // VALIDATE FORM
-    // ==========================================
-
     if (!email.trim() || !password.trim()) {
-      setError(
-        "Enter your email and password."
-      );
+      setError("Enter your email and password.");
       return;
     }
 
     try {
       setLoading(true);
 
-      // ========================================
-      // LOGIN REQUEST
-      // ========================================
-
       const response = await fetch(
         "http://localhost:5000/api/auth/login",
         {
           method: "POST",
-
           headers: {
             "Content-Type": "application/json",
           },
-
           body: JSON.stringify({
             email: email.trim(),
             password: password,
@@ -65,35 +52,19 @@ export default function Login({
 
       const data = await response.json();
 
-      // ========================================
-      // LOGIN FAILED
-      // ========================================
-
       if (!response.ok || !data.success) {
-        setError(
-          data.message ||
-            "Invalid email or password."
-        );
-
+        setError(data.message || "Invalid email or password.");
         return;
       }
-
-      // ========================================
-      // CHECK TOKEN
-      // ========================================
 
       if (!data.token) {
         setError(
           "Login failed. No authentication token received."
         );
-
         return;
       }
 
-      // ========================================
-      // SAVE LOGIN INFORMATION
-      // ========================================
-
+      // Save authentication information
       localStorage.setItem(
         "agriconnect_token",
         data.token
@@ -104,24 +75,15 @@ export default function Login({
         JSON.stringify(data.user)
       );
 
-      // ========================================
-      // SHOW SUCCESS MESSAGE
-      // ========================================
-
+      // Show success message
       setLoginSuccess(true);
 
-      // ========================================
-      // WAIT BRIEFLY THEN OPEN HOME
-      // ========================================
-
+      // Go to dashboard after success message
       setTimeout(() => {
         onLogin(data.user);
       }, 1200);
     } catch (err) {
-      console.error(
-        "Login error:",
-        err
-      );
+      console.error("Login error:", err);
 
       setError(
         "Unable to connect to the server. Make sure the backend is running on port 5000."
@@ -132,287 +94,266 @@ export default function Login({
   };
 
   return (
-    <main className="min-h-screen bg-[#f7faf8] px-4 py-8 sm:px-6">
-      <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-6xl items-center gap-10 lg:grid-cols-2">
+    <div className="min-h-screen bg-slate-50 flex">
+      {/* =========================================
+          LEFT SIDE - DESKTOP BRANDING
+      ========================================== */}
+      <div className="hidden lg:flex lg:w-1/2 bg-emerald-900 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-emerald-950 via-emerald-900 to-green-800" />
 
-        {/* =====================================
-            LEFT SIDE
-        ====================================== */}
-
-        <section className="hidden lg:block">
-          <div className="rounded-[2.5rem] border border-emerald-100 bg-emerald-50 p-10">
-
-            {/* LOGO */}
-
-            <div className="flex items-center gap-3">
-              <span className="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-600 text-white shadow-lg">
-                <Sprout size={25} />
-              </span>
-
-              <div>
-                <h1 className="text-xl font-black text-slate-900">
-                  AgriConnect
-                </h1>
-
-                <p className="text-xs font-bold text-emerald-600">
-                  AI Marketplace
-                </p>
-              </div>
+        <div className="relative z-10 flex flex-col justify-between w-full p-12 text-white">
+          {/* Logo */}
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center">
+              <Sprout size={24} />
             </div>
 
-            {/* HEADING */}
+            <div>
+              <h1 className="font-bold text-xl">
+                AgriConnect AI
+              </h1>
 
-            <h2 className="mt-14 max-w-xl text-5xl font-black leading-tight tracking-tight text-slate-900">
-              Turn your harvest into a{" "}
-              <span className="text-emerald-600">
-                real sale.
-              </span>
+              <p className="text-emerald-200 text-xs">
+                Connecting farmers to real buyers
+              </p>
+            </div>
+          </div>
+
+          {/* Main Message */}
+          <div className="max-w-xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-sm mb-6">
+              <Sprout size={15} />
+              Smart Agriculture Marketplace
+            </div>
+
+            <h2 className="text-5xl font-bold leading-tight mb-6">
+              Grow your business.
+              <br />
+              Connect with the right market.
             </h2>
 
-            <p className="mt-5 max-w-xl text-base leading-7 text-slate-600">
-              Your AI sales agent searches buyers,
-              ranks offers and prepares bounded
-              negotiations so you can focus on
-              your farm.
+            <p className="text-emerald-100 text-lg leading-relaxed max-w-lg">
+              AgriConnect AI helps farmers and buyers connect,
+              negotiate, and trade agricultural produce more
+              efficiently.
             </p>
-
-            {/* FEATURES */}
-
-            <div className="mt-8 grid gap-3">
-              {[
-                "Verified buyer network",
-                "AI-assisted matching",
-                "Farmer-controlled price limits",
-              ].map((item) => (
-                <div
-                  key={item}
-                  className="flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm"
-                >
-                  <ShieldCheck
-                    className="text-emerald-600"
-                    size={18}
-                  />
-
-                  <span className="text-sm font-bold text-slate-800">
-                    {item}
-                  </span>
-                </div>
-              ))}
-            </div>
           </div>
-        </section>
 
-        {/* =====================================
-            LOGIN FORM
-        ====================================== */}
+          {/* Bottom Security */}
+          <div className="flex items-center gap-3 text-emerald-100">
+            <ShieldCheck size={20} />
 
-        <section className="mx-auto w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-900/5 sm:p-8">
+            <span className="text-sm">
+              Secure authentication and protected accounts
+            </span>
+          </div>
+        </div>
+      </div>
 
-          {/* ===================================
-              MOBILE LOGO
-          ==================================== */}
+      {/* =========================================
+          RIGHT SIDE - LOGIN FORM
+      ========================================== */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-10">
+        <div className="w-full max-w-md">
+          {/* Mobile Logo */}
+          <div className="lg:hidden flex items-center justify-center gap-3 mb-10">
+            <div className="w-11 h-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center">
+              <Sprout size={24} />
+            </div>
 
-          <div className="mb-8 lg:hidden">
-            <div className="flex items-center gap-3">
+            <div>
+              <h1 className="font-bold text-xl text-slate-900">
+                AgriConnect AI
+              </h1>
 
-              <span className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-600 text-white">
-                <Sprout size={23} />
-              </span>
-
-              <div>
-                <h1 className="font-black text-slate-900">
-                  AgriConnect
-                </h1>
-
-                <p className="text-xs font-bold text-emerald-600">
-                  AI Marketplace
-                </p>
-              </div>
-
+              <p className="text-slate-500 text-xs">
+                Smart Agriculture Marketplace
+              </p>
             </div>
           </div>
 
-          {/* ===================================
-              HEADER
-          ==================================== */}
+          {/* Header */}
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold text-slate-900">
+              Welcome back
+            </h2>
 
-          <p className="text-xs font-bold uppercase tracking-[.16em] text-emerald-600">
-            Welcome back
-          </p>
+            <p className="text-slate-500 mt-2">
+              Sign in to continue to your AgriConnect account.
+            </p>
+          </div>
 
-          <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-900">
-            Sign in to your farm workspace
-          </h2>
-
-          <p className="mt-2 text-sm leading-6 text-slate-500">
-            Access your listings, buyer matches
-            and AI sales agent.
-          </p>
-
-          {/* ===================================
-              FORM
-          ==================================== */}
-
+          {/* =========================================
+              LOGIN FORM
+          ========================================== */}
           <form
             onSubmit={submit}
-            className="mt-7 space-y-4"
+            className="space-y-5"
           >
+            {/* Email */}
+            <div>
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-slate-700 mb-2"
+              >
+                Email address
+              </label>
 
-            {/* EMAIL */}
-
-            <label className="block">
-              <span className="text-xs font-bold text-slate-600">
-                Email
-              </span>
-
-              <div className="mt-2 flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3 focus-within:border-emerald-500">
-
+              <div className="relative">
                 <UserRound
-                  size={17}
-                  className="text-slate-400"
+                  size={19}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
                 />
 
                 <input
+                  id="email"
                   type="email"
                   value={email}
-                  onChange={(e) => {
-                    setEmail(
-                      e.target.value
-                    );
-
-                    setError("");
-                    setLoginSuccess(false);
-                  }}
+                  onChange={(e) =>
+                    setEmail(e.target.value)
+                  }
                   placeholder="you@example.com"
-                  className="w-full bg-transparent text-sm outline-none"
                   autoComplete="email"
                   disabled={loading || loginSuccess}
+                  className="w-full h-12 pl-11 pr-4 rounded-xl border border-slate-200 bg-white outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition disabled:bg-slate-100"
                 />
-
               </div>
-            </label>
+            </div>
 
-            {/* PASSWORD */}
+            {/* Password */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-slate-700"
+                >
+                  Password
+                </label>
+              </div>
 
-            <label className="block">
-              <span className="text-xs font-bold text-slate-600">
-                Password
-              </span>
-
-              <div className="mt-2 flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3 focus-within:border-emerald-500">
-
+              <div className="relative">
                 <LockKeyhole
-                  size={17}
-                  className="text-slate-400"
+                  size={19}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
                 />
 
                 <input
-                  type="password"
+                  id="password"
+                  type={
+                    showPassword
+                      ? "text"
+                      : "password"
+                  }
                   value={password}
-                  onChange={(e) => {
-                    setPassword(
-                      e.target.value
-                    );
-
-                    setError("");
-                    setLoginSuccess(false);
-                  }}
-                  placeholder="••••••••"
-                  className="w-full bg-transparent text-sm outline-none"
+                  onChange={(e) =>
+                    setPassword(e.target.value)
+                  }
+                  placeholder="Enter your password"
                   autoComplete="current-password"
                   disabled={loading || loginSuccess}
+                  className="w-full h-12 pl-11 pr-12 rounded-xl border border-slate-200 bg-white outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition disabled:bg-slate-100"
                 />
 
+                {/* Show / Hide Password */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowPassword((prev) => !prev)
+                  }
+                  disabled={loading || loginSuccess}
+                  aria-label={
+                    showPassword
+                      ? "Hide password"
+                      : "Show password"
+                  }
+                  title={
+                    showPassword
+                      ? "Hide password"
+                      : "Show password"
+                  }
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-emerald-600 transition disabled:opacity-50"
+                >
+                  {showPassword ? (
+                    <EyeOff size={19} />
+                  ) : (
+                    <Eye size={19} />
+                  )}
+                </button>
               </div>
-            </label>
+            </div>
 
-            {/* =================================
-                ERROR MESSAGE
-            ================================== */}
-
-            {error && !loginSuccess && (
-              <div className="rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">
-                {error}
+            {/* Error */}
+            {error && (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+                <p className="text-sm text-red-600">
+                  {error}
+                </p>
               </div>
             )}
 
-            {/* =================================
-                SUCCESS MESSAGE
-            ================================== */}
-
+            {/* Success */}
             {loginSuccess && (
-              <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">
-
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 flex items-center gap-3">
                 <CheckCircle2
                   size={20}
-                  className="shrink-0 text-emerald-600"
+                  className="text-emerald-600"
                 />
 
-                <div>
-                  <p>
-                    Sign in successful!
-                  </p>
-
-                  <p className="text-xs font-medium text-emerald-600 mt-0.5">
-                    Opening your home page...
-                  </p>
-                </div>
-
+                <p className="text-sm text-emerald-700 font-medium">
+                  Sign in successful! Opening your dashboard...
+                </p>
               </div>
             )}
 
-            {/* =================================
-                LOGIN BUTTON
-            ================================== */}
-
+            {/* Sign In Button */}
             <button
               type="submit"
-              disabled={
-                loading ||
-                loginSuccess
-              }
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={loading || loginSuccess}
+              className="w-full h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center justify-center gap-2 transition disabled:opacity-60 disabled:cursor-not-allowed"
             >
-
-              {loginSuccess
-                ? "Opening home..."
-                : loading
-                ? "Signing in..."
-                : "Sign in"}
-
-              {!loading &&
-                !loginSuccess && (
-                  <ArrowRight size={17} />
-                )}
-
+              {loading ? (
+                <>
+                  <span className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  Signing in...
+                </>
+              ) : loginSuccess ? (
+                <>
+                  <CheckCircle2 size={19} />
+                  Successful
+                </>
+              ) : (
+                <>
+                  Sign in
+                  <ArrowRight size={18} />
+                </>
+              )}
             </button>
-
           </form>
 
-          {/* ===================================
-              SIGN UP BUTTON
-          ==================================== */}
+          {/* Register */}
+          <div className="text-center mt-7">
+            <p className="text-sm text-slate-500">
+              Don't have an account?{" "}
+              <button
+                type="button"
+                onClick={onSwitchToRegister}
+                disabled={loading || loginSuccess}
+                className="font-semibold text-emerald-600 hover:text-emerald-700 transition disabled:opacity-50"
+              >
+                Create account
+              </button>
+            </p>
+          </div>
 
-          <button
-            type="button"
-            onClick={onSwitchToRegister}
-            disabled={loading || loginSuccess}
-            className="mt-4 w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Don't have an account? Sign up
-          </button>
-
-          {/* ===================================
-              SECURITY MESSAGE
-          ==================================== */}
-
-          <p className="mt-6 text-center text-[11px] leading-5 text-slate-400">
-            Your account is securely authenticated
-            through the AgriConnect backend.
-          </p>
-
-        </section>
+          {/* Security */}
+          <div className="mt-8 flex items-center justify-center gap-2 text-xs text-slate-400">
+            <ShieldCheck size={15} />
+            <span>
+              Your account information is securely protected.
+            </span>
+          </div>
+        </div>
       </div>
-    </main>
+    </div>
   );
 }

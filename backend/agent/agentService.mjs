@@ -13,6 +13,19 @@ import {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const AGENT_HOME = path.resolve(__dirname, "..", "agent-home");
 const MEMORY_DIR = path.join(AGENT_HOME, "memory");
+
+async function pickGroqModel(modelRuntime, preferredIds) {
+  for (const id of preferredIds) {
+    const base = modelRuntime.getModel("groq", id);
+    if (!base) continue;
+    // Groq's chat-completions endpoint rejects the "developer" system role
+    // that the SDK sends for reasoning models. Send a normal system prompt
+    // by disabling reasoning so the request does not fail with a 400.
+    return { ...base, reasoning: false };
+  }
+  const available = await modelRuntime.getAvailable();
+  return available.find((m) => m.provider === "groq") ?? null;
+}
 function seedMemory(listing, buyerDemands) {
   fs.writeFileSync(
     path.join(MEMORY_DIR, "listings.json"),
@@ -27,10 +40,8 @@ let sessionPromise = null;
 
 async function createSession() {
   const modelRuntime = await ModelRuntime.create();
-  const model =
-    modelRuntime.getModel("groq", "qwen/qwen3.8-27b") ??
-    modelRuntime.getModel("groq", "openai/gpt-oss-20b") ??
-    (await modelRuntime.getAvailable()).find((m) => m.provider === "groq");
+  const preferred = ["qwen/qwen3.8-27b", "openai/gpt-oss-20b"];
+  const model = await pickGroqModel(modelRuntime, preferred);
   if (!model) throw new Error("No Groq model found. Check GROQ_API_KEY.");
   const skillFiles = [
     "skills/buyer-search/SKILL.md",
@@ -172,17 +183,56 @@ export async function runAgent(listing, buyerDemands) {
   );
   const text = session.messages
     .filter((m) => m.role === "assistant")
-    .flatMap((m) =>
-      Array.isArray(m.content)
-        ? m.content.filter((b) => b.type === "text").map((b) => b.text)
-        : [],
-    )
+    .flatMap((m) => {
+      if (typeof m.content === "string") return [m.content];
+      if (!Array.isArray(m.content)) return [];
+      return m.content
+        .flatMap((b) => {
+          if (b?.type === "text") return b.text;
+          if (typeof b?.text === "string") return b.text;
+          return [];
+        })
+        .filter((t) => typeof t === "string");
+    })
     .join("\n");
-  const trimmed = text.trim().replace(/^```json\s*|\s*```$/g, "");
+  const trimmed = text.trim();
   try {
-    return JSON.parse(trimmed);
+    const parsed = parseJsonReply(trimmed);
+    if (!parsed) throw new Error("no JSON object found");
+    return {
+      matches: Array.isArray(parsed.matches) ? parsed.matches : [],
+      bestMatch: parsed.bestMatch ?? null,
+      outreachDraft: parsed.outreachDraft ?? "",
+    };
   } catch {
-    return { raw: trimmed };
+    return {
+      success: false,
+      message:
+        "The agent did not return usable buyer matches. Look at the raw reply below and try again.",
+      matches: [],
+      bestMatch: null,
+      outreachDraft: "",
+      raw: trimmed,
+    };
+  }
+}
+
+function parseJsonReply(raw) {
+  const text = String(raw)
+    .trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/g, "");
+  try {
+    return JSON.parse(text);
+  } catch {
+    const start = text.indexOf("{");
+    const end = text.lastIndexOf("}");
+    if (start === -1 || end === -1 || end <= start) return null;
+    try {
+      return JSON.parse(text.slice(start, end + 1));
+    } catch {
+      return null;
+    }
   }
 }
 

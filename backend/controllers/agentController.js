@@ -35,9 +35,14 @@ const runSalesAgent = async (req, res) => {
         region: listing.location.region,
       },
     };
+    const escapeRegex = (text) =>
+      String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const requests = await BuyerRequest.find({
-      crop: listing.crop.toLowerCase(),
-      status: "open",
+      crop: new RegExp(
+        `^${escapeRegex(listing.crop.trim().toLowerCase())}$`,
+        "i",
+      ),
+      status: { $nin: ["cancelled", "fulfilled"] },
       maxPrice: { $gte: listing.minPrice },
     }).populate("buyer", "name email phone role");
     const buyerDemands = requests.map((reqDoc) => ({
@@ -59,6 +64,16 @@ const runSalesAgent = async (req, res) => {
       });
     }
     const result = await runAgent(agentListing, buyerDemands);
+    if (result?.success === false) {
+      return safeJson(200, {
+        success: false,
+        message: result.message,
+        matches: [],
+        bestMatch: null,
+        outreachDraft: "",
+        raw: result.raw,
+      });
+    }
     safeJson(200, {
       success: true,
       message: "Agent finished",

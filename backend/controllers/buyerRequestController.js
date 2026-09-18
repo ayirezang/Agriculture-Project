@@ -110,6 +110,9 @@ const createBuyerRequest = async (req, res) => {
       requiredBy: requiredBy || undefined,
     });
 
+
+    
+
     // Return buyer information
     const populatedRequest =
       await BuyerRequest.findById(request._id).populate(

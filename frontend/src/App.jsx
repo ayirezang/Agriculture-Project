@@ -33,6 +33,12 @@ import Analytics from "./pages/Analytics";
 import SettingsPage from "./pages/SettingsPage";
 
 // ==========================================
+// BUYER PAGES
+// ==========================================
+
+import BuyerRequests from "./pages/BuyerRequests";
+
+// ==========================================
 // AUTH PAGES
 // ==========================================
 
@@ -40,26 +46,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 
 // ==========================================
-// ROLE-BASED NAVIGATION
-// ==========================================
-//
-// FARMER
-// - Dashboard
-// - Sell Produce
-// - Marketplace
-// - AI Agent
-// - Buyer Network
-// - Analytics
-// - Settings
-//
-// BUYER
-// - Home
-// - Find Produce
-// - My Requests
-// - AI Agent
-// - Analytics
-// - Settings
-//
+// NAVIGATION BY ROLE
 // ==========================================
 
 const navigationByRole = {
@@ -175,13 +162,22 @@ export default function App() {
         parsedUser?.role !== "farmer" &&
         parsedUser?.role !== "buyer"
       ) {
-        localStorage.removeItem(
-          "agriconnect_user"
-        );
+        localStorage.removeItem("agriconnect_user");
+        localStorage.removeItem("agriconnect_token");
 
-        localStorage.removeItem(
-          "agriconnect_token"
-        );
+        return null;
+      }
+
+      // ========================================
+      // MAKE SURE A TOKEN ALSO EXISTS
+      // ========================================
+
+      const token = localStorage.getItem(
+        "agriconnect_token"
+      );
+
+      if (!token) {
+        localStorage.removeItem("agriconnect_user");
 
         return null;
       }
@@ -193,13 +189,8 @@ export default function App() {
         error
       );
 
-      localStorage.removeItem(
-        "agriconnect_user"
-      );
-
-      localStorage.removeItem(
-        "agriconnect_token"
-      );
+      localStorage.removeItem("agriconnect_user");
+      localStorage.removeItem("agriconnect_token");
 
       return null;
     }
@@ -245,8 +236,10 @@ export default function App() {
       loggedInUser
     );
 
-    // Make sure only farmer and buyer
-    // can enter the application.
+    // ========================================
+    // ONLY FARMER AND BUYER
+    // ========================================
+
     if (
       loggedInUser?.role !== "farmer" &&
       loggedInUser?.role !== "buyer"
@@ -259,11 +252,17 @@ export default function App() {
       return;
     }
 
+    // ========================================
+    // SAVE USER
+    // ========================================
+
     setUser(loggedInUser);
 
-    // Always start from dashboard/home
-    setActivePage("dashboard");
+    // ========================================
+    // ALWAYS START AT DASHBOARD/HOME
+    // ========================================
 
+    setActivePage("dashboard");
     setMobileOpen(false);
   };
 
@@ -277,8 +276,10 @@ export default function App() {
       registeredUser
     );
 
-    // Make sure only farmer and buyer
-    // can register.
+    // ========================================
+    // ONLY FARMER AND BUYER
+    // ========================================
+
     if (
       registeredUser?.role !== "farmer" &&
       registeredUser?.role !== "buyer"
@@ -291,11 +292,17 @@ export default function App() {
       return;
     }
 
+    // ========================================
+    // SAVE USER
+    // ========================================
+
     setUser(registeredUser);
 
-    // After registration, open dashboard
-    setActivePage("dashboard");
+    // ========================================
+    // OPEN DASHBOARD/HOME
+    // ========================================
 
+    setActivePage("dashboard");
     setMobileOpen(false);
   };
 
@@ -304,7 +311,10 @@ export default function App() {
   // ==========================================
 
   const logout = () => {
-    // Remove authentication data
+    // ========================================
+    // REMOVE AUTH DATA
+    // ========================================
+
     localStorage.removeItem(
       "agriconnect_user"
     );
@@ -313,21 +323,19 @@ export default function App() {
       "agriconnect_token"
     );
 
-    // Reset application
+    // ========================================
+    // RESET APP
+    // ========================================
+
     setUser(null);
-
     setAuthPage("login");
-
     setActivePage("dashboard");
-
     setMobileOpen(false);
   };
 
   // ==========================================
-  // KEYBOARD SHORTCUT
-  //
+  // GLOBAL SEARCH SHORTCUT
   // CTRL + K
-  // CMD + K
   // ==========================================
 
   useEffect(() => {
@@ -364,14 +372,14 @@ export default function App() {
   }, [user]);
 
   // ==========================================
-  // ROLE-BASED SIDEBAR NAVIGATION
+  // NAVIGATION FOR CURRENT ROLE
   // ==========================================
 
   const navigation =
     navigationByRole[user?.role] || [];
 
   // ==========================================
-  // ROLE-BASED DASHBOARD
+  // DASHBOARD PAGE
   // ==========================================
 
   const dashboardPage = useMemo(() => {
@@ -425,6 +433,7 @@ export default function App() {
 
               <p className="text-sm text-slate-500 mt-3">
                 Current role:
+
                 <span className="font-semibold text-red-600 ml-1">
                   {user?.role || "unknown"}
                 </span>
@@ -443,13 +452,13 @@ export default function App() {
   }, [user]);
 
   // ==========================================
-  // CURRENT PAGE
+  // PAGE ROUTING
   // ==========================================
 
   const page = useMemo(() => {
     switch (activePage) {
       // ======================================
-      // DASHBOARD
+      // DASHBOARD / HOME
       // ======================================
 
       case "dashboard":
@@ -474,8 +483,7 @@ export default function App() {
 
       // ======================================
       // MARKETPLACE
-      //
-      // Available to both farmer and buyer
+      // FARMER + BUYER
       // ======================================
 
       case "marketplace":
@@ -495,8 +503,7 @@ export default function App() {
 
       // ======================================
       // AI AGENT
-      //
-      // Available to both roles
+      // FARMER + BUYER
       // ======================================
 
       case "agent":
@@ -542,53 +549,25 @@ export default function App() {
         }
 
         return (
-          <div className="max-w-7xl mx-auto">
-            <div className="mb-6">
-              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">
-                My Requests
-              </h1>
-
-              <p className="text-slate-500 mt-1">
-                View and manage the produce
-                requests you have posted.
-              </p>
-            </div>
-
-            <div className="bg-white rounded-2xl border border-slate-200 p-8">
-              <div className="flex flex-col items-center justify-center text-center py-10">
-                <div className="w-14 h-14 rounded-2xl bg-green-50 flex items-center justify-center mb-4">
-                  <ClipboardList className="w-7 h-7 text-green-600" />
-                </div>
-
-                <h2 className="text-xl font-bold text-slate-900">
-                  No Requests Yet
-                </h2>
-
-                <p className="text-slate-500 mt-2 max-w-md">
-                  Your buying requests will
-                  appear here after you post
-                  a request for produce.
-                </p>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    navigate("marketplace")
-                  }
-                  className="mt-6 px-5 py-3 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700 transition"
-                >
-                  Find Produce
-                </button>
-              </div>
-            </div>
-          </div>
+          <BuyerRequests
+            user={user}
+            onNavigate={navigate}
+          />
         );
 
       // ======================================
       // ANALYTICS
+      // FARMER + BUYER
       // ======================================
 
       case "analytics":
+        if (
+          user?.role !== "farmer" &&
+          user?.role !== "buyer"
+        ) {
+          return dashboardPage;
+        }
+
         return (
           <Analytics
             user={user}
@@ -598,9 +577,17 @@ export default function App() {
 
       // ======================================
       // SETTINGS
+      // FARMER + BUYER
       // ======================================
 
       case "settings":
+        if (
+          user?.role !== "farmer" &&
+          user?.role !== "buyer"
+        ) {
+          return dashboardPage;
+        }
+
         return (
           <SettingsPage
             user={user}

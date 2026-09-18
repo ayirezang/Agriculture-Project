@@ -93,11 +93,39 @@ const buyerRequestSchema = new mongoose.Schema(
     // ==========================================
     // REQUEST STATUS
     // ==========================================
+    // pending   = waiting for a farmer
+    // matched   = farmer has been found
+    // completed = transaction has been completed
+    // cancelled = buyer cancelled the request
+    // ==========================================
     status: {
       type: String,
-      enum: ["open", "matched", "fulfilled", "cancelled"],
-      default: "open",
+      enum: [
+        "pending",
+        "matched",
+        "completed",
+        "cancelled",
+      ],
+      default: "pending",
       index: true,
+    },
+
+    // ==========================================
+    // FARMER THAT MATCHED THIS REQUEST
+    // ==========================================
+    matchedFarmer: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
+    // ==========================================
+    // FARMER LISTING THAT MATCHED THIS REQUEST
+    // ==========================================
+    matchedListing: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Listing",
+      default: null,
     },
   },
   {
@@ -109,7 +137,7 @@ const buyerRequestSchema = new mongoose.Schema(
 // INDEXES
 // ==========================================
 
-// Quickly find open requests for a particular crop
+// Quickly find pending requests for a crop
 buyerRequestSchema.index({
   crop: 1,
   status: 1,
@@ -119,6 +147,12 @@ buyerRequestSchema.index({
 buyerRequestSchema.index({
   "location.town": 1,
   "location.region": 1,
+});
+
+// Quickly find requests belonging to a buyer
+buyerRequestSchema.index({
+  buyer: 1,
+  status: 1,
 });
 
 module.exports = mongoose.model(

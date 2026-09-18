@@ -11,6 +11,18 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
+// ==========================================
+// API URL
+// ==========================================
+// On your computer this can fall back to localhost.
+// On your phone it will use the value in .env:
+// VITE_API_URL=http://192.168.100.5:5000/api
+// ==========================================
+
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:5000/api";
+
 export default function Register({
   onRegister,
   onSwitchToLogin,
@@ -39,7 +51,6 @@ export default function Register({
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Shows registration success message
   const [registrationSuccess, setRegistrationSuccess] =
     useState(false);
 
@@ -66,10 +77,7 @@ export default function Register({
       !town.trim() ||
       !region.trim()
     ) {
-      setError(
-        "Please fill in all required fields."
-      );
-
+      setError("Please fill in all required fields.");
       return;
     }
 
@@ -90,10 +98,7 @@ export default function Register({
     // ========================================
 
     if (password !== confirmPassword) {
-      setError(
-        "Passwords do not match."
-      );
-
+      setError("Passwords do not match.");
       return;
     }
 
@@ -105,7 +110,7 @@ export default function Register({
       // ========================================
 
       const response = await fetch(
-        "http://localhost:5000/api/auth/register",
+        `${API_URL}/auth/register`,
         {
           method: "POST",
 
@@ -128,7 +133,17 @@ export default function Register({
         }
       );
 
-      const data = await response.json();
+      // ========================================
+      // SAFELY READ RESPONSE
+      // ========================================
+
+      let data;
+
+      try {
+        data = await response.json();
+      } catch {
+        data = {};
+      }
 
       // ========================================
       // REGISTRATION FAILED
@@ -137,7 +152,7 @@ export default function Register({
       if (!response.ok || !data.success) {
         setError(
           data.message ||
-            "Registration failed."
+            "Registration failed. Please try again."
         );
 
         return;
@@ -186,20 +201,13 @@ export default function Register({
       );
 
       // ========================================
-      // SHOW SUCCESS MESSAGE
+      // SHOW SUCCESS
       // ========================================
 
       setRegistrationSuccess(true);
 
       // ========================================
       // OPEN HOME PAGE
-      // ========================================
-      //
-      // App.jsx will check the user's role:
-      //
-      // farmer → FarmerDashboard
-      // buyer  → BuyerDashboard
-      //
       // ========================================
 
       setTimeout(() => {
@@ -214,7 +222,7 @@ export default function Register({
       );
 
       setError(
-        "Unable to connect to the server. Make sure the backend is running on port 5000."
+        "Unable to connect to the server. Make sure your computer and phone are connected to the same Wi-Fi network."
       );
     } finally {
       setLoading(false);
@@ -325,9 +333,7 @@ export default function Register({
 
         <section className="mx-auto w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-900/5 sm:p-8">
 
-          {/* ===================================
-              MOBILE LOGO
-          ==================================== */}
+          {/* MOBILE LOGO */}
 
           <div className="mb-8 lg:hidden">
 
@@ -355,9 +361,7 @@ export default function Register({
 
           </div>
 
-          {/* ===================================
-              HEADER
-          ==================================== */}
+          {/* HEADER */}
 
           <p className="text-xs font-bold uppercase tracking-[.16em] text-emerald-600">
             Get started
@@ -372,9 +376,7 @@ export default function Register({
             with farmers and buyers.
           </p>
 
-          {/* ===================================
-              FORM
-          ==================================== */}
+          {/* FORM */}
 
           <form
             onSubmit={submit}
@@ -651,9 +653,7 @@ export default function Register({
 
             </label>
 
-            {/* =================================
-                ERROR MESSAGE
-            ================================== */}
+            {/* ERROR */}
 
             {error && !registrationSuccess && (
               <div className="rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">
@@ -661,9 +661,7 @@ export default function Register({
               </div>
             )}
 
-            {/* =================================
-                SUCCESS MESSAGE
-            ================================== */}
+            {/* SUCCESS */}
 
             {registrationSuccess && (
               <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">
@@ -688,9 +686,7 @@ export default function Register({
               </div>
             )}
 
-            {/* =================================
-                CREATE ACCOUNT BUTTON
-            ================================== */}
+            {/* CREATE ACCOUNT BUTTON */}
 
             <button
               type="submit"
@@ -716,9 +712,7 @@ export default function Register({
 
           </form>
 
-          {/* ===================================
-              LOGIN BUTTON
-          ==================================== */}
+          {/* LOGIN BUTTON */}
 
           <button
             type="button"
@@ -732,9 +726,7 @@ export default function Register({
             Already have an account? Sign in
           </button>
 
-          {/* ===================================
-              FOOTER
-          ==================================== */}
+          {/* FOOTER */}
 
           <p className="mt-6 text-center text-[11px] leading-5 text-slate-400">
             Your password is securely encrypted

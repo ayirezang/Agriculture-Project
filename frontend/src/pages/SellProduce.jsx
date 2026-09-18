@@ -8,7 +8,7 @@ import {
   Sprout,
 } from "lucide-react";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = "/api";
 
 export default function SellProduce({ user, onNavigate }) {
   const [form, setForm] = useState({

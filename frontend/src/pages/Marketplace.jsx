@@ -10,6 +10,9 @@ import {
   MessageSquare,
   RefreshCw,
   Package,
+  Loader2,
+  CheckCircle2,
+  UserPlus,
 } from "lucide-react";
 
 import Badge from "../components/ui/Badge";
@@ -26,6 +29,144 @@ export default function Marketplace({ user }) {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // ==========================================
+  // BUYER REQUEST FORM
+  // ==========================================
+
+  const [showRequestForm, setShowRequestForm] =
+    useState(false);
+  const [requestForm, setRequestForm] = useState({
+    crop: "",
+    quantity: "",
+    unit: "kg",
+    maxPrice: "",
+    town: user?.location?.town || "",
+    region: user?.location?.region || "",
+    pickupRadius: "25",
+    description: "",
+    requiredBy: "",
+  });
+  const [requestLoading, setRequestLoading] =
+    useState(false);
+  const [requestError, setRequestError] = useState("");
+  const [requestSuccess, setRequestSuccess] =
+    useState("");
+
+  const handleRequestChange = (e) => {
+    const { name, value } = e.target;
+    setRequestForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+    setRequestError("");
+    setRequestSuccess("");
+  };
+
+  const handleRequestSubmit = async (e) => {
+    e.preventDefault();
+    setRequestError("");
+    setRequestSuccess("");
+
+    if (
+      !requestForm.crop.trim() ||
+      !requestForm.quantity ||
+      !requestForm.maxPrice ||
+      !requestForm.town.trim() ||
+      !requestForm.region.trim()
+    ) {
+      setRequestError("Please fill in all required fields.");
+      return;
+    }
+
+    if (Number(requestForm.quantity) <= 0) {
+      setRequestError("Quantity must be greater than 0.");
+      return;
+    }
+
+    if (Number(requestForm.maxPrice) < 0) {
+      setRequestError("Maximum price cannot be negative.");
+      return;
+    }
+
+    try {
+      setRequestLoading(true);
+
+      const token = localStorage.getItem("agriconnect_token");
+
+      if (!token) {
+        setRequestError("Your session has expired. Please login again.");
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/buyer-requests`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          crop: requestForm.crop.trim(),
+          quantity: Number(requestForm.quantity),
+          unit: requestForm.unit,
+          maxPrice: Number(requestForm.maxPrice),
+          location: {
+            town: requestForm.town.trim(),
+            region: requestForm.region.trim(),
+          },
+          pickupRadius: Number(requestForm.pickupRadius) || 25,
+          description: requestForm.description.trim(),
+          requiredBy: requestForm.requiredBy || undefined,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        setRequestError(data.message || "Unable to submit your request.");
+        return;
+      }
+
+      setRequestSuccess("Your buyer request has been posted successfully!");
+      setRequestForm({
+        crop: "",
+        quantity: "",
+        unit: "kg",
+        maxPrice: "",
+        town: user?.location?.town || "",
+        region: user?.location?.region || "",
+        pickupRadius: "25",
+        description: "",
+        requiredBy: "",
+      });
+    } catch (err) {
+      console.error("Create buyer request error:", err);
+      setRequestError(
+        "Unable to connect to the server. Make sure the backend is running on port 5000."
+      );
+    } finally {
+      setRequestLoading(false);
+    }
+  };
+
+  // ==========================================
+  // MAKE AN OFFER (pre-fills the buyer request)
+  // ==========================================
+
+  const handleMakeOffer = (listing) => {
+    if (!user) return;
+
+    setRequestForm((prev) => ({
+      ...prev,
+      crop: listing.crop,
+      unit: listing.unit || prev.unit,
+      town: listing.location?.town || prev.town,
+      region: listing.location?.region || prev.region,
+    }));
+
+    setSelected(null);
+    setShowRequestForm(true);
+  };
 
   // ==========================================
   // FETCH REAL LISTINGS FROM BACKEND
@@ -150,18 +291,30 @@ export default function Marketplace({ user }) {
             : "Browse fresh produce listed by farmers."
         }
         action={
-          <button
-            onClick={fetchListings}
-            disabled={loading}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <RefreshCw
-              size={16}
-              className={loading ? "animate-spin" : ""}
-            />
+          <div className="flex items-center gap-3">
+            {user && (
+              <button
+                onClick={() => setShowRequestForm(true)}
+                className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-emerald-700"
+              >
+                <UserPlus size={16} />
+                Post a request
+              </button>
+            )}
 
-            Refresh
-          </button>
+            <button
+              onClick={fetchListings}
+              disabled={loading}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <RefreshCw
+                size={16}
+                className={loading ? "animate-spin" : ""}
+              />
+
+              Refresh
+            </button>
+          </div>
         }
       />
 
@@ -601,13 +754,236 @@ export default function Marketplace({ user }) {
             {/* Action */}
 
             <button
-              onClick={() => setSelected(null)}
+              onClick={() => handleMakeOffer(selected)}
               className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-700"
             >
               <MessageSquare size={16} />
 
               Make an offer
             </button>
+          </div>
+        </div>
+      )}
+      {/* ==========================================
+          BUYER REQUEST FORM MODAL
+      ========================================== */}
+
+      {showRequestForm && (
+        <div
+          className="fixed inset-0 z-[90] grid place-items-center bg-slate-950/50 p-4"
+          onClick={() => {
+            setShowRequestForm(false);
+            setRequestError("");
+            setRequestSuccess("");
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+                  <UserPlus size={12} />
+                  Buyer request
+                </div>
+
+                <h2 className="mt-3 text-2xl font-black text-slate-900">
+                  What are you looking for?
+                </h2>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  Post what you need and farmers will respond.
+                </p>
+              </div>
+
+              <button
+                onClick={() => {
+                  setShowRequestForm(false);
+                  setRequestError("");
+                  setRequestSuccess("");
+                }}
+                className="rounded-xl p-2 hover:bg-slate-100"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Success */}
+
+            {requestSuccess && (
+              <div className="mt-5 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+                <CheckCircle2 size={18} className="shrink-0 mt-0.5" />
+
+                <div>
+                  <p>{requestSuccess}</p>
+
+                  <button
+                    onClick={() => {
+                      setShowRequestForm(false);
+                      setRequestSuccess("");
+                    }}
+                    className="mt-1 text-xs font-black underline"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!requestSuccess && (
+              <form onSubmit={handleRequestSubmit} className="mt-6 space-y-5">
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="text-xs font-bold text-slate-600">Crop *</span>
+                    <input
+                      name="crop"
+                      value={requestForm.crop}
+                      onChange={handleRequestChange}
+                      placeholder="e.g. Maize"
+                      className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-emerald-500"
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="text-xs font-bold text-slate-600">Quantity *</span>
+                    <div className="mt-2 flex">
+                      <input
+                        type="number"
+                        min="1"
+                        name="quantity"
+                        value={requestForm.quantity}
+                        onChange={handleRequestChange}
+                        placeholder="e.g. 500"
+                        className="w-full rounded-l-2xl border border-r-0 border-slate-200 px-4 py-3 text-sm outline-none focus:border-emerald-500"
+                      />
+                      <select
+                        name="unit"
+                        value={requestForm.unit}
+                        onChange={handleRequestChange}
+                        className="rounded-r-2xl border border-slate-200 bg-slate-50 px-3 text-sm font-bold outline-none"
+                      >
+                        <option value="kg">kg</option>
+                        <option value="tonnes">tonnes</option>
+                        <option value="bags">bags</option>
+                        <option value="crates">crates</option>
+                      </select>
+                    </div>
+                  </label>
+                </div>
+
+                <label className="block">
+                  <span className="text-xs font-bold text-slate-600">Maximum price *</span>
+                  <div className="mt-2 flex items-center rounded-2xl border border-slate-200 px-4 py-3 focus-within:border-emerald-500">
+                    <span className="mr-2 text-sm font-bold text-slate-400">GH₵</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      name="maxPrice"
+                      value={requestForm.maxPrice}
+                      onChange={handleRequestChange}
+                      placeholder="3.50"
+                      className="w-full bg-transparent text-sm outline-none"
+                    />
+                    <span className="text-xs text-slate-400">/{requestForm.unit}</span>
+                  </div>
+                  <p className="mt-1 text-[11px] text-slate-400">
+                    Farmers should not charge above this amount.
+                  </p>
+                </label>
+
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="text-xs font-bold text-slate-600">Town / City *</span>
+                    <input
+                      name="town"
+                      value={requestForm.town}
+                      onChange={handleRequestChange}
+                      placeholder="e.g. Koforidua"
+                      className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-emerald-500"
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="text-xs font-bold text-slate-600">Region *</span>
+                    <input
+                      name="region"
+                      value={requestForm.region}
+                      onChange={handleRequestChange}
+                      placeholder="e.g. Eastern Region"
+                      className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-emerald-500"
+                    />
+                  </label>
+                </div>
+
+                <label className="block">
+                  <span className="text-xs font-bold text-slate-600">Pickup radius (km)</span>
+                  <input
+                    type="number"
+                    min="0"
+                    name="pickupRadius"
+                    value={requestForm.pickupRadius}
+                    onChange={handleRequestChange}
+                    className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-emerald-500"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-xs font-bold text-slate-600">Description</span>
+                  <textarea
+                    name="description"
+                    value={requestForm.description}
+                    onChange={handleRequestChange}
+                    rows="3"
+                    placeholder="Quality requirements, delivery preferences, etc."
+                    className="mt-2 w-full resize-none rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-emerald-500"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-xs font-bold text-slate-600">Required by</span>
+                  <input
+                    type="date"
+                    name="requiredBy"
+                    value={requestForm.requiredBy}
+                    onChange={handleRequestChange}
+                    className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-emerald-500"
+                  />
+                </label>
+
+                {requestError && (
+                  <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                    {requestError}
+                  </div>
+                )}
+
+                <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowRequestForm(false);
+                      setRequestError("");
+                      setRequestSuccess("");
+                    }}
+                    className="rounded-2xl border border-slate-200 px-6 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={requestLoading}
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-7 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {requestLoading && (
+                      <Loader2 size={17} className="animate-spin" />
+                    )}
+                    {requestLoading ? "Posting request..." : "Post buyer request"}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

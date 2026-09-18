@@ -9,8 +9,6 @@ import {
   BarChart3,
   Settings,
   ClipboardList,
-  UserCog,
-  Handshake,
 } from "lucide-react";
 
 import Sidebar from "./components/layout/Sidebar";
@@ -22,7 +20,6 @@ import Topbar from "./components/layout/Topbar";
 
 import FarmerDashboard from "./pages/FarmerDashboard";
 import BuyerDashboard from "./pages/BuyerDashboard";
-import AdminDashboard from "./pages/AdminDashboard";
 
 // ==========================================
 // EXISTING PAGES
@@ -43,41 +40,31 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 
 // ==========================================
-// ROLE-BASED SIDEBAR NAVIGATION
+// ROLE-BASED NAVIGATION
 // ==========================================
 //
-// Farmer:
-// Dashboard
-// Sell Produce
-// Marketplace
-// AI Agent
-// Buyer Network
-// Analytics
-// Settings
+// FARMER
+// - Dashboard
+// - Sell Produce
+// - Marketplace
+// - AI Agent
+// - Buyer Network
+// - Analytics
+// - Settings
 //
-// Buyer:
-// Dashboard
-// Find Produce
-// My Requests
-// AI Agent
-// Farmer Network
-// Analytics
-// Settings
-//
-// Admin:
-// Dashboard
-// Users
-// Listings
-// Buyer Requests
-// Transactions
-// Analytics
-// Settings
+// BUYER
+// - Home
+// - Find Produce
+// - My Requests
+// - AI Agent
+// - Analytics
+// - Settings
 //
 // ==========================================
 
 const navigationByRole = {
   // ========================================
-  // FARMER NAVIGATION
+  // FARMER
   // ========================================
 
   farmer: [
@@ -86,38 +73,32 @@ const navigationByRole = {
       label: "Dashboard",
       icon: LayoutDashboard,
     },
-
     {
       id: "sell",
       label: "Sell Produce",
       icon: Package,
     },
-
     {
       id: "marketplace",
       label: "Marketplace",
       icon: Store,
     },
-
     {
       id: "agent",
       label: "AI Agent",
       icon: Bot,
       badge: "Live",
     },
-
     {
       id: "buyers",
       label: "Buyer Network",
       icon: Users,
     },
-
     {
       id: "analytics",
       label: "Analytics",
       icon: BarChart3,
     },
-
     {
       id: "settings",
       label: "Settings",
@@ -126,74 +107,36 @@ const navigationByRole = {
   ],
 
   // ========================================
-  // BUYER NAVIGATION
+  // BUYER
   // ========================================
 
- buyer: [
-  {
-    id: "dashboard",
-    label: "Home",
-    icon: LayoutDashboard,
-  },
-  {
-    id: "agent",
-    label: "AI Agent",
-    icon: Bot,
-    badge: "Live",
-  },
-  {
-    id: "analytics",
-    label: "Analytics",
-    icon: BarChart3,
-  },
-  {
-    id: "settings",
-    label: "Settings",
-    icon: Settings,
-  },
-],
-
-  // ========================================
-  // ADMIN NAVIGATION
-  // ========================================
-
-  admin: [
+  buyer: [
     {
       id: "dashboard",
-      label: "Dashboard",
+      label: "Home",
       icon: LayoutDashboard,
     },
-
     {
-      id: "users",
-      label: "Users",
-      icon: UserCog,
+      id: "marketplace",
+      label: "Find Produce",
+      icon: Store,
     },
-
-    {
-      id: "listings",
-      label: "Listings",
-      icon: Package,
-    },
-
     {
       id: "requests",
-      label: "Buyer Requests",
+      label: "My Requests",
       icon: ClipboardList,
     },
-
     {
-      id: "transactions",
-      label: "Transactions",
-      icon: Handshake,
+      id: "agent",
+      label: "AI Agent",
+      icon: Bot,
+      badge: "Live",
     },
-
     {
       id: "analytics",
       label: "Analytics",
       icon: BarChart3,
     },
-
     {
       id: "settings",
       label: "Settings",
@@ -213,17 +156,40 @@ export default function App() {
 
   const [user, setUser] = useState(() => {
     try {
-      const savedUser =
-        localStorage.getItem("agriconnect_user");
+      const savedUser = localStorage.getItem(
+        "agriconnect_user"
+      );
 
+      // No saved user
       if (!savedUser) {
         return null;
       }
 
-      return JSON.parse(savedUser);
+      const parsedUser = JSON.parse(savedUser);
+
+      // ========================================
+      // ONLY FARMER AND BUYER ARE ALLOWED
+      // ========================================
+
+      if (
+        parsedUser?.role !== "farmer" &&
+        parsedUser?.role !== "buyer"
+      ) {
+        localStorage.removeItem(
+          "agriconnect_user"
+        );
+
+        localStorage.removeItem(
+          "agriconnect_token"
+        );
+
+        return null;
+      }
+
+      return parsedUser;
     } catch (error) {
       console.error(
-        "Error loading user:",
+        "Error loading saved user:",
         error
       );
 
@@ -261,7 +227,7 @@ export default function App() {
     useState(false);
 
   // ==========================================
-  // NAVIGATE
+  // NAVIGATION
   // ==========================================
 
   const navigate = (page) => {
@@ -279,10 +245,23 @@ export default function App() {
       loggedInUser
     );
 
+    // Make sure only farmer and buyer
+    // can enter the application.
+    if (
+      loggedInUser?.role !== "farmer" &&
+      loggedInUser?.role !== "buyer"
+    ) {
+      console.error(
+        "Invalid user role:",
+        loggedInUser?.role
+      );
+
+      return;
+    }
+
     setUser(loggedInUser);
 
-    setAuthPage("login");
-
+    // Always start from dashboard/home
     setActivePage("dashboard");
 
     setMobileOpen(false);
@@ -292,18 +271,29 @@ export default function App() {
   // REGISTER
   // ==========================================
 
-  const handleRegister = (
-    registeredUser
-  ) => {
+  const handleRegister = (registeredUser) => {
     console.log(
       "Registered user:",
       registeredUser
     );
 
+    // Make sure only farmer and buyer
+    // can register.
+    if (
+      registeredUser?.role !== "farmer" &&
+      registeredUser?.role !== "buyer"
+    ) {
+      console.error(
+        "Invalid registered user role:",
+        registeredUser?.role
+      );
+
+      return;
+    }
+
     setUser(registeredUser);
 
-    setAuthPage("login");
-
+    // After registration, open dashboard
     setActivePage("dashboard");
 
     setMobileOpen(false);
@@ -314,6 +304,7 @@ export default function App() {
   // ==========================================
 
   const logout = () => {
+    // Remove authentication data
     localStorage.removeItem(
       "agriconnect_user"
     );
@@ -322,6 +313,7 @@ export default function App() {
       "agriconnect_token"
     );
 
+    // Reset application
     setUser(null);
 
     setAuthPage("login");
@@ -333,18 +325,22 @@ export default function App() {
 
   // ==========================================
   // KEYBOARD SHORTCUT
-  // CTRL + K / CMD + K
+  //
+  // CTRL + K
+  // CMD + K
   // ==========================================
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      return;
+    }
 
-    const onKey = (e) => {
+    const onKey = (event) => {
       if (
-        (e.ctrlKey || e.metaKey) &&
-        e.key.toLowerCase() === "k"
+        (event.ctrlKey || event.metaKey) &&
+        event.key.toLowerCase() === "k"
       ) {
-        e.preventDefault();
+        event.preventDefault();
 
         document
           .querySelector(
@@ -368,7 +364,7 @@ export default function App() {
   }, [user]);
 
   // ==========================================
-  // ROLE-BASED NAVIGATION
+  // ROLE-BASED SIDEBAR NAVIGATION
   // ==========================================
 
   const navigation =
@@ -379,87 +375,71 @@ export default function App() {
   // ==========================================
 
   const dashboardPage = useMemo(() => {
-    switch (user?.role) {
-      // ======================================
-      // FARMER
-      // ======================================
+    // ========================================
+    // FARMER DASHBOARD
+    // ========================================
 
-      case "farmer":
-        return (
-          <FarmerDashboard
-            user={user}
-            onNavigate={navigate}
-          />
-        );
+    if (user?.role === "farmer") {
+      return (
+        <FarmerDashboard
+          user={user}
+          onNavigate={navigate}
+        />
+      );
+    }
 
-      // ======================================
-      // BUYER
-      // ======================================
+    // ========================================
+    // BUYER DASHBOARD
+    // ========================================
 
-      case "buyer":
-        return (
-          <BuyerDashboard
-            user={user}
-            onNavigate={navigate}
-          />
-        );
+    if (user?.role === "buyer") {
+      return (
+        <BuyerDashboard
+          user={user}
+          onNavigate={navigate}
+        />
+      );
+    }
 
-      // ======================================
-      // ADMIN
-      // ======================================
+    // ========================================
+    // INVALID ROLE
+    // ========================================
 
-      case "admin":
-        return (
-          <AdminDashboard
-            user={user}
-            onNavigate={navigate}
-          />
-        );
+    return (
+      <div className="max-w-2xl mx-auto mt-10">
+        <div className="bg-white border border-red-200 rounded-2xl p-6 shadow-sm">
+          <div className="flex items-start gap-4">
+            <div className="w-11 h-11 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
+              <Users className="w-5 h-5 text-red-600" />
+            </div>
 
-      // ======================================
-      // INVALID ROLE
-      // ======================================
+            <div>
+              <h2 className="text-xl font-bold text-slate-900">
+                Account Role Not Configured
+              </h2>
 
-      default:
-        return (
-          <div className="max-w-2xl mx-auto mt-10">
-            <div className="bg-white border border-red-200 rounded-2xl p-6 shadow-sm">
+              <p className="text-slate-600 mt-2">
+                Your account does not have a
+                valid AgriConnect role.
+              </p>
 
-              <div className="flex items-start gap-4">
+              <p className="text-sm text-slate-500 mt-3">
+                Current role:
+                <span className="font-semibold text-red-600 ml-1">
+                  {user?.role || "unknown"}
+                </span>
+              </p>
 
-                <div className="w-11 h-11 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
-                  <Users className="w-5 h-5 text-red-600" />
-                </div>
-
-                <div>
-                  <h2 className="text-xl font-bold text-slate-900">
-                    Account Role Not Configured
-                  </h2>
-
-                  <p className="text-slate-600 mt-2">
-                    Your account does not have a valid
-                    AgriConnect role.
-                  </p>
-
-                  <p className="text-sm text-slate-500 mt-3">
-                    Current role:
-                    <span className="font-semibold text-red-600 ml-1">
-                      {user?.role || "unknown"}
-                    </span>
-                  </p>
-
-                  <p className="text-sm text-slate-500 mt-2">
-                    Please contact an administrator
-                    to configure your account.
-                  </p>
-                </div>
-
-              </div>
-
+              <p className="text-sm text-slate-500 mt-2">
+                Please sign out and register
+                or log in with a Farmer or
+                Buyer account.
+              </p>
             </div>
           </div>
-        );
-    }
+        </div>
+      </div>
+    );
   }, [user]);
 
   // ==========================================
@@ -494,7 +474,8 @@ export default function App() {
 
       // ======================================
       // MARKETPLACE
-      // FARMER + BUYER
+      //
+      // Available to both farmer and buyer
       // ======================================
 
       case "marketplace":
@@ -514,7 +495,8 @@ export default function App() {
 
       // ======================================
       // AI AGENT
-      // FARMER + BUYER
+      //
+      // Available to both roles
       // ======================================
 
       case "agent":
@@ -525,10 +507,16 @@ export default function App() {
           return dashboardPage;
         }
 
-        return <AgentPage />;
+        return (
+          <AgentPage
+            user={user}
+            onNavigate={navigate}
+          />
+        );
 
       // ======================================
-      // FARMER NETWORK / BUYER NETWORK
+      // FARMER
+      // BUYER NETWORK
       // ======================================
 
       case "buyers":
@@ -536,132 +524,63 @@ export default function App() {
           return dashboardPage;
         }
 
-        return <Buyers />;
+        return (
+          <Buyers
+            user={user}
+            onNavigate={navigate}
+          />
+        );
 
       // ======================================
-      // BUYER REQUESTS
-      // ======================================
-      //
-      // The actual BuyerRequests page will be
-      // added when we build that page.
-      //
-      // For now, prevent the buyer from seeing
-      // a blank page.
+      // BUYER
+      // MY REQUESTS
       // ======================================
 
       case "requests":
-        if (user?.role === "buyer") {
-          return (
-            <div className="bg-white rounded-2xl border border-slate-200 p-6">
-              <h2 className="text-xl font-bold text-slate-900">
-                My Requests
-              </h2>
-
-              <p className="text-slate-500 mt-2">
-                Your buying requests will appear here.
-              </p>
-            </div>
-          );
-        }
-
-        if (user?.role === "admin") {
-          return (
-            <div className="bg-white rounded-2xl border border-slate-200 p-6">
-              <h2 className="text-xl font-bold text-slate-900">
-                Buyer Requests
-              </h2>
-
-              <p className="text-slate-500 mt-2">
-                Admin buyer-request management will appear here.
-              </p>
-            </div>
-          );
-        }
-
-        return dashboardPage;
-
-      // ======================================
-      // BUYER FARMER NETWORK
-      // ======================================
-
-      case "farmers":
         if (user?.role !== "buyer") {
           return dashboardPage;
         }
 
         return (
-          <div className="bg-white rounded-2xl border border-slate-200 p-6">
-            <h2 className="text-xl font-bold text-slate-900">
-              Farmer Network
-            </h2>
+          <div className="max-w-7xl mx-auto">
+            <div className="mb-6">
+              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">
+                My Requests
+              </h1>
 
-            <p className="text-slate-500 mt-2">
-              Farmers and their available produce
-              will appear here.
-            </p>
-          </div>
-        );
+              <p className="text-slate-500 mt-1">
+                View and manage the produce
+                requests you have posted.
+              </p>
+            </div>
 
-      // ======================================
-      // ADMIN USERS
-      // ======================================
+            <div className="bg-white rounded-2xl border border-slate-200 p-8">
+              <div className="flex flex-col items-center justify-center text-center py-10">
+                <div className="w-14 h-14 rounded-2xl bg-green-50 flex items-center justify-center mb-4">
+                  <ClipboardList className="w-7 h-7 text-green-600" />
+                </div>
 
-      case "users":
-        if (user?.role !== "admin") {
-          return dashboardPage;
-        }
+                <h2 className="text-xl font-bold text-slate-900">
+                  No Requests Yet
+                </h2>
 
-        return (
-          <div className="bg-white rounded-2xl border border-slate-200 p-6">
-            <h2 className="text-xl font-bold text-slate-900">
-              User Management
-            </h2>
+                <p className="text-slate-500 mt-2 max-w-md">
+                  Your buying requests will
+                  appear here after you post
+                  a request for produce.
+                </p>
 
-            <p className="text-slate-500 mt-2">
-              Admin user management will appear here.
-            </p>
-          </div>
-        );
-
-      // ======================================
-      // ADMIN LISTINGS
-      // ======================================
-
-      case "listings":
-        if (user?.role !== "admin") {
-          return dashboardPage;
-        }
-
-        return (
-          <div className="bg-white rounded-2xl border border-slate-200 p-6">
-            <h2 className="text-xl font-bold text-slate-900">
-              Listings Management
-            </h2>
-
-            <p className="text-slate-500 mt-2">
-              Admin listing management will appear here.
-            </p>
-          </div>
-        );
-
-      // ======================================
-      // ADMIN TRANSACTIONS
-      // ======================================
-
-      case "transactions":
-        if (user?.role !== "admin") {
-          return dashboardPage;
-        }
-
-        return (
-          <div className="bg-white rounded-2xl border border-slate-200 p-6">
-            <h2 className="text-xl font-bold text-slate-900">
-              Transactions
-            </h2>
-
-            <p className="text-slate-500 mt-2">
-              Transaction management will appear here.
-            </p>
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate("marketplace")
+                  }
+                  className="mt-6 px-5 py-3 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700 transition"
+                >
+                  Find Produce
+                </button>
+              </div>
+            </div>
           </div>
         );
 
@@ -670,14 +589,24 @@ export default function App() {
       // ======================================
 
       case "analytics":
-        return <Analytics />;
+        return (
+          <Analytics
+            user={user}
+            onNavigate={navigate}
+          />
+        );
 
       // ======================================
       // SETTINGS
       // ======================================
 
       case "settings":
-        return <SettingsPage />;
+        return (
+          <SettingsPage
+            user={user}
+            onLogout={logout}
+          />
+        );
 
       // ======================================
       // FALLBACK
@@ -732,7 +661,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#f7faf8] text-slate-900">
-
       {/* =====================================
           SIDEBAR
       ====================================== */}
@@ -750,7 +678,6 @@ export default function App() {
       ====================================== */}
 
       <div className="lg:pl-72">
-
         {/* ===================================
             TOPBAR
         ==================================== */}
@@ -774,7 +701,6 @@ export default function App() {
         <main className="p-4 sm:p-6 lg:p-8">
           {page}
         </main>
-
       </div>
     </div>
   );

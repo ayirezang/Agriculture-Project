@@ -8,6 +8,7 @@ const authRoutes = require("./routes/authRoutes");
 const listingRoutes = require("./routes/listingRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const buyerRequestRoutes = require("./routes/buyerRequestRoutes");
+const agentRoutes = require("./routes/agentRoutes");
 
 dotenv.config();
 
@@ -23,11 +24,9 @@ connectDB();
 // ==========================================
 app.use(
   cors({
-    origin:
-      process.env.CLIENT_URL ||
-      "http://localhost:5173",
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
     credentials: true,
-  })
+  }),
 );
 
 // ==========================================
@@ -41,6 +40,7 @@ app.use(express.json());
 
 // Authentication
 app.use("/api/auth", authRoutes);
+app.use("/api/agent", agentRoutes);
 
 // Farmer produce listings
 app.use("/api/listings", listingRoutes);
@@ -49,10 +49,7 @@ app.use("/api/listings", listingRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 
 // Buyer requests
-app.use(
-  "/api/buyer-requests",
-  buyerRequestRoutes
-);
+app.use("/api/buyer-requests", buyerRequestRoutes);
 
 // ==========================================
 // HEALTH CHECK
@@ -92,7 +89,5 @@ app.use((error, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log(
-    `AgriConnect AI server running on port ${PORT}`
-  );
+  console.log(`AgriConnect AI server running on port ${PORT}`);
 });

@@ -1,224 +1,138 @@
 const Listing = require("../models/Listing");
 
-// Convert supported units to kilograms
-const convertToKg = (quantity, unit) => {
-  if (unit === "kg") {
-    return quantity;
-  }
+const EARTH_RADIUS_KM = 6371;
 
-  if (unit === "tonnes") {
-    return quantity * 1000;
-  }
+function escapeRegex(text) {
+  return String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
-  // We cannot safely convert bags/crates
-  // because their weight can vary.
-  return null;
-};
+function degreesToRadians(degrees) {
+  return (degrees * Math.PI) / 180;
+}
 
-// Calculate distance between two coordinates
-const calculateDistanceKm = (
-  lat1,
-  lon1,
-  lat2,
-  lon2
-) => {
-  if (
-    lat1 === undefined ||
-    lon1 === undefined ||
-    lat2 === undefined ||
-    lon2 === undefined
-  ) {
-    return null;
-  }
-
-  const earthRadius = 6371;
-
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const dLat = degreesToRadians(lat2 - lat1);
+  const dLon = degreesToRadians(lon2 - lon1);
   const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) ** 2;
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(degreesToRadians(lat1)) *
+      Math.cos(degreesToRadians(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return EARTH_RADIUS_KM * c;
+}
 
-  const c =
-    2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+function locationDistanceKm(a, b) {
+  if (
+    typeof a?.latitude === "number" &&
+    typeof a?.longitude === "number" &&
+    typeof b?.latitude === "number" &&
+    typeof b?.longitude === "number"
+  ) {
+    return haversineKm(a.latitude, a.longitude, b.latitude, b.longitude);
+  }
 
-  return earthRadius * c;
-};
-
-// Calculate how well a listing matches a buyer request
-const calculateMatchScore = (
-  request,
-  listing,
-  distanceKm
-) => {
-  let score = 0;
-
-  // -----------------------------
-  // 1. CROP MATCH - 35 POINTS
-  // -----------------------------
-  const requestCrop = request.crop
-    .toLowerCase()
-    .trim();
-
-  const listingCrop = listing.crop
-    .toLowerCase()
-    .trim();
-
-  if (requestCrop === listingCrop) {
-    score += 35;
-  } else {
+  if (
+    a?.town &&
+    b?.town &&
+    a.town.trim().toLowerCase() === b.town.trim().toLowerCase()
+  ) {
     return 0;
   }
 
-  // -----------------------------
-  // 2. PRICE MATCH - 25 POINTS
-  // -----------------------------
-  if (listing.minPrice <= request.maxPrice) {
-    const priceDifference =
-      request.maxPrice - listing.minPrice;
-
-    const pricePercentage =
-      request.maxPrice > 0
-        ? priceDifference / request.maxPrice
-        : 0;
-
-    if (pricePercentage >= 0.2) {
-      score += 25;
-    } else if (pricePercentage >= 0.1) {
-      score += 20;
-    } else if (pricePercentage >= 0.05) {
-      score += 15;
-    } else {
-      score += 10;
-    }
-  } else {
-    return 0;
+  if (
+    a?.region &&
+    b?.region &&
+    a.region.trim().toLowerCase() === b.region.trim().toLowerCase()
+  ) {
+    return 25;
   }
 
-  // -----------------------------
-  // 3. QUANTITY MATCH - 20 POINTS
-  // -----------------------------
-  const requestKg = convertToKg(
-    request.quantity,
-    request.unit
-  );
+  return null;
+}
 
-  const listingKg = convertToKg(
-    listing.quantity,
-    listing.unit
-  );
+function quantityMatchScore(listing, request) {
+  if (listing.unit !== request.unit) return 15;
 
-  if (requestKg !== null && listingKg !== null) {
-    if (listingKg >= requestKg) {
-      score += 20;
-    } else if (listingKg >= requestKg * 0.75) {
-      score += 15;
-    } else if (listingKg >= requestKg * 0.5) {
-      score += 10;
-    }
-  } else if (request.unit === listing.unit) {
-    if (listing.quantity >= request.quantity) {
-      score += 20;
-    } else if (
-      listing.quantity >= request.quantity * 0.75
-    ) {
-      score += 15;
-    }
-  }
+  if (listing.quantity >= request.quantity) return 20;
 
-  // -----------------------------
-  // 4. LOCATION - 20 POINTS
-  // -----------------------------
-  if (distanceKm !== null) {
-    if (distanceKm <= request.pickupRadius) {
-      if (distanceKm <= 10) {
-        score += 20;
-      } else if (distanceKm <= 25) {
-        score += 17;
-      } else if (distanceKm <= 50) {
-        score += 12;
-      } else {
-        score += 5;
-      }
-    } else {
-      return 0;
-    }
-  } else {
-    // Fallback if GPS coordinates aren't available
-    const sameTown =
-      request.location.town.toLowerCase().trim() ===
-      listing.location.town.toLowerCase().trim();
+  const ratio = listing.quantity / request.quantity;
+  return Math.round(ratio * 20);
+}
 
-    const sameRegion =
-      request.location.region.toLowerCase().trim() ===
-      listing.location.region.toLowerCase().trim();
+function fitScore(listing, request, distanceKm) {
+  const priceRatio =
+    request.maxPrice > 0
+      ? Math.min(listing.minPrice / request.maxPrice, 1)
+      : 0;
 
-    if (sameTown) {
-      score += 20;
-    } else if (sameRegion) {
-      score += 12;
-    } else {
-      score += 5;
-    }
-  }
+  const priceScore =
+    listing.minPrice <= request.maxPrice
+      ? Math.round((1 - priceRatio) * 40)
+      : 0;
 
-  return score;
-};
+  const distanceScore =
+    distanceKm === null
+      ? 15
+      : distanceKm <= 0
+        ? 25
+        : Math.round(Math.max(0, 1 - distanceKm / request.pickupRadius) * 25);
 
-// Find farmer listings matching a buyer request
+  return priceScore + distanceScore + quantityMatchScore(listing, request) + 15;
+}
+
 const findMatchingListings = async (request) => {
-  const listings = await Listing.find({
+  const filter = {
     status: "active",
-    crop: {
-      $regex: `^${request.crop}$`,
-      $options: "i",
-    },
-  })
-    .populate(
-      "farmer",
-      "name email phone role location"
-    )
-    .sort({ createdAt: -1 });
+    crop: new RegExp(`^${escapeRegex(request.crop)}$`, "i"),
+    minPrice: { $lte: Number(request.maxPrice) },
+  };
 
-  const matches = [];
-
-  for (const listing of listings) {
-    const distanceKm = calculateDistanceKm(
-      request.location.latitude,
-      request.location.longitude,
-      listing.location.latitude,
-      listing.location.longitude
+  if (request.location?.region) {
+    filter["location.region"] = new RegExp(
+      `^${escapeRegex(request.location.region)}$`,
+      "i"
     );
-
-    const score = calculateMatchScore(
-      request,
-      listing,
-      distanceKm
-    );
-
-    if (score <= 0) {
-      continue;
-    }
-
-    matches.push({
-      listing,
-      matchScore: score,
-      distanceKm:
-        distanceKm !== null
-          ? Number(distanceKm.toFixed(1))
-          : null,
-    });
   }
 
-  // Highest match first
-  matches.sort(
-    (a, b) => b.matchScore - a.matchScore
-  );
+  const candidates = await Listing.find(filter)
+    .populate("farmer", "name email phone role location")
+    .lean();
 
-  return matches;
+  const matches = candidates
+    .map((listing) => {
+      const distanceKm = locationDistanceKm(
+        request.location,
+        listing.location
+      );
+      return { listing, distanceKm };
+    })
+    .filter(({ listing, distanceKm }) => {
+      if (distanceKm !== null && distanceKm > request.pickupRadius) {
+        return false;
+      }
+
+      if (
+        listing.unit === request.unit &&
+        listing.quantity < request.quantity * 0.7
+      ) {
+        return false;
+      }
+
+      return true;
+    })
+    .map(({ listing, distanceKm }) => {
+      const score = fitScore(listing, request, distanceKm);
+      return {
+        listing,
+        distanceKm,
+        fitScore: score,
+      };
+    })
+    .sort((a, b) => b.fitScore - a.fitScore);
+
+  return matches.slice(0, 10);
 };
 
 module.exports = {

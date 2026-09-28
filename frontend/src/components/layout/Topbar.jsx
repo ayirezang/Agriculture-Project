@@ -36,9 +36,11 @@ export default function Topbar({ onMenu, onAgent, user, onLogout, onNavigate }) 
         </form>
 
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
-          <button onClick={onAgent} className="hidden items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-600/15 hover:bg-emerald-700 sm:flex">
-            <Bot size={17} /> Ask Agent
-          </button>
+          {user?.role === "farmer" && (
+            <button onClick={onAgent} className="hidden items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-600/15 hover:bg-emerald-700 sm:flex">
+              <Bot size={17} /> Ask Agent
+            </button>
+          )}
 
           <div className="relative">
             <button onClick={() => { setNotificationsOpen(!notificationsOpen); setProfileOpen(false); }} className="relative rounded-xl border border-slate-200 p-2.5 text-slate-500 hover:bg-slate-50" aria-label="Notifications">

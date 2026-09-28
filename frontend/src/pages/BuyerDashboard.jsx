@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import {
   ArrowUpRight,
-  Bot,
   CheckCircle2,
   Package,
   RefreshCw,
@@ -9,7 +8,6 @@ import {
   ShoppingCart,
   TrendingUp,
   Users,
-  Zap,
 } from "lucide-react";
 
 import StatCard from "../components/ui/StatCard";
@@ -330,94 +328,7 @@ export default function BuyerDashboard({ user, onNavigate }) {
           )}
 
         </div>
-
-      </section>
-
-      {/* =====================================
-          AI AGENT
-      ====================================== */}
-
-      <section className="rounded-3xl border border-slate-200 bg-slate-950 p-6 text-white shadow-sm">
-
-        <div className="flex items-center justify-between">
-
-          <div>
-
-            <Badge>
-              Buyer Agent
-            </Badge>
-
-            <h3 className="mt-3 text-xl font-extrabold">
-              Working for you
-            </h3>
-
-          </div>
-
-          <span className="grid h-11 w-11 place-items-center rounded-2xl bg-white/10">
-            <Bot
-              size={20}
-              className="text-emerald-300"
-            />
-          </span>
-
-        </div>
-
-        <div className="mt-7 space-y-5">
-
-          <div className="flex gap-3">
-
-            <div className="pt-1 text-[10px] font-bold text-slate-500">
-              NOW
-            </div>
-
-            <div className="relative flex-1 border-l border-white/10 pl-4">
-
-              <div className="absolute -left-1.5 top-1 h-3 w-3 rounded-full bg-emerald-400 ring-4 ring-slate-950" />
-
-              <p className="text-sm font-bold">
-                Buyer account connected
-              </p>
-
-              <p className="mt-1 text-xs text-slate-400">
-                Your buying activity is connected.
-              </p>
-
-            </div>
-
-          </div>
-
-          <div className="flex gap-3">
-
-            <div className="pt-1 text-[10px] font-bold text-slate-500">
-              READY
-            </div>
-
-            <div className="relative flex-1 border-l border-white/10 pl-4">
-
-              <div className="absolute -left-1.5 top-1 h-3 w-3 rounded-full bg-emerald-400 ring-4 ring-slate-950" />
-
-              <p className="text-sm font-bold">
-                Farmer matching
-              </p>
-
-              <p className="mt-1 text-xs text-slate-400">
-                AI can match your demand with available produce.
-              </p>
-
-            </div>
-
-          </div>
-
-        </div>
-
-        <button
-          onClick={() => onNavigate("agent")}
-          className="mt-7 w-full rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-950 hover:bg-emerald-50"
-        >
-          Open agent workspace
-        </button>
-
-      </section>
+</section>
 
       {/* =====================================
           QUICK ACTIONS
@@ -458,24 +369,6 @@ export default function BuyerDashboard({ user, onNavigate }) {
 
           <p className="mt-1 text-sm text-slate-500">
             Connect directly with farmers selling produce.
-          </p>
-        </button>
-
-        <button
-          onClick={() => onNavigate("agent")}
-          className="rounded-3xl border border-slate-200 bg-white p-6 text-left shadow-sm hover:border-emerald-200"
-        >
-          <Zap
-            size={24}
-            className="text-emerald-600"
-          />
-
-          <h3 className="mt-4 font-extrabold">
-            AI Matching
-          </h3>
-
-          <p className="mt-1 text-sm text-slate-500">
-            Let AgriConnect find suitable produce for you.
           </p>
         </button>
 

@@ -195,7 +195,7 @@ export default function AgentPage({ user, onNavigate }) {
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
               Pick one of your listings and run the agent. It
               searches open buyer requests, ranks the best
-              matches and drafts outreach — it never sends
+              matches and drafts outreach  it never sends
               anything without your approval.
             </p>
           </div>

@@ -14,14 +14,14 @@ dotenv.config();
 
 const app = express();
 
-// ==========================================
+//
 // CONNECT TO DATABASE
-// ==========================================
+//
 connectDB();
 
-// ==========================================
+//
 // CORS
-// ==========================================
+// =
 app.use(
   cors({
     origin: process.env.CLIENT_URL || "http://localhost:5173",
@@ -29,14 +29,14 @@ app.use(
   }),
 );
 
-// ==========================================
+//
 // BODY PARSER
-// ==========================================
+//
 app.use(express.json());
 
-// ==========================================
+//
 // API ROUTES
-// ==========================================
+//
 
 // Authentication
 app.use("/api/auth", authRoutes);
@@ -51,9 +51,9 @@ app.use("/api/dashboard", dashboardRoutes);
 // Buyer requests
 app.use("/api/buyer-requests", buyerRequestRoutes);
 
-// ==========================================
+//
 // HEALTH CHECK
-// ==========================================
+//
 app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
@@ -61,9 +61,9 @@ app.get("/", (req, res) => {
   });
 });
 
-// ==========================================
+//
 // UNKNOWN API ROUTE
-// ==========================================
+// =
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -71,9 +71,9 @@ app.use((req, res) => {
   });
 });
 
-// ==========================================
+//
 // GLOBAL ERROR HANDLER
-// ==========================================
+//
 app.use((error, req, res, next) => {
   console.error("Unhandled server error:", error);
 
@@ -83,9 +83,9 @@ app.use((error, req, res, next) => {
   });
 });
 
-// ==========================================
+//
 // START SERVER
-// ==========================================
+//
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, "0.0.0.0", () => {

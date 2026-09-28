@@ -114,12 +114,6 @@ const navigationByRole = {
       icon: ClipboardList,
     },
     {
-      id: "agent",
-      label: "AI Agent",
-      icon: Bot,
-      badge: "Live",
-    },
-    {
       id: "analytics",
       label: "Analytics",
       icon: BarChart3,
@@ -503,14 +497,11 @@ export default function App() {
 
       // ======================================
       // AI AGENT
-      // FARMER + BUYER
+      // FARMER ONLY
       // ======================================
 
       case "agent":
-        if (
-          user?.role !== "farmer" &&
-          user?.role !== "buyer"
-        ) {
+        if (user?.role !== "farmer") {
           return dashboardPage;
         }
 

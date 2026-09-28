@@ -43,8 +43,14 @@ const runSalesAgent = async (req, res) => {
         "i",
       ),
       status: { $nin: ["cancelled", "fulfilled"] },
-      maxPrice: { $gte: listing.minPrice },
     }).populate("buyer", "name email phone role");
+    const priceFit = (offer) => {
+      const min = Number(listing.minPrice) || 0;
+      if (!(min > 0)) return 100;
+      const offerValue = Number(offer);
+      if (!Number.isFinite(offerValue)) return null;
+      return Math.round(Math.min(offerValue / min, 1) * 100);
+    };
     const buyerDemands = requests.map((reqDoc) => ({
       id: reqDoc._id.toString(),
       name: reqDoc.buyer?.name || "Buyer",
@@ -53,6 +59,7 @@ const runSalesAgent = async (req, res) => {
       quantity: reqDoc.quantity,
       town: reqDoc.location.town,
       verified: true,
+      fitScore: priceFit(reqDoc.maxPrice),
     }));
     if (buyerDemands.length === 0) {
       return safeJson(200, {
@@ -74,11 +81,19 @@ const runSalesAgent = async (req, res) => {
         raw: result.raw,
       });
     }
+    const matches = (result.matches || [])
+      .map((m) => ({
+        ...m,
+        fitScore: priceFit(m.offer) ?? m.fitScore ?? 0,
+      }))
+      .sort((a, b) => b.fitScore - a.fitScore);
     safeJson(200, {
       success: true,
       message: "Agent finished",
       listingId: listing._id,
       ...result,
+      matches,
+      bestMatch: matches[0] || null,
     });
   } catch (error) {
     console.error("Run agent error:", error);

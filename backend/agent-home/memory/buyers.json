@@ -1,47 +1,12 @@
 [
   {
-    "id": "6aaa962078ce485e61fc25f6",
-    "name": "buyer 1",
-    "crop": "maize",
-    "pricePerKg": 3.5,
-    "quantity": 10,
-    "town": "Koforidua",
-    "verified": true
-  },
-  {
-    "id": "6aaaef3244bfd8133f7655f4",
-    "name": "buyer agent",
-    "crop": "maize",
-    "pricePerKg": 3.5,
-    "quantity": 10,
-    "town": "Koforidua",
-    "verified": true
-  },
-  {
-    "id": "6aaaef8202028c30a584715a",
-    "name": "buyer agent",
-    "crop": "maize",
-    "pricePerKg": 3.5,
-    "quantity": 10,
-    "town": "Koforidua",
-    "verified": true
-  },
-  {
-    "id": "6aaaefdd016c3de2445a1d81",
-    "name": "buyer agent",
-    "crop": "maize",
-    "pricePerKg": 3.5,
-    "quantity": 10,
-    "town": "Koforidua",
-    "verified": true
-  },
-  {
-    "id": "6aad93624f0efafe4d037b0c",
-    "name": "buyer 1",
-    "crop": "maize",
-    "pricePerKg": 3.5,
-    "quantity": 10,
-    "town": "Koforidua",
-    "verified": true
+    "id": "6ab66e67c66164fd1eceec2f",
+    "name": "Abigail Appiah",
+    "crop": "cassava",
+    "pricePerKg": 80,
+    "quantity": 200,
+    "town": "Accra",
+    "verified": true,
+    "fitScore": 100
   }
 ]

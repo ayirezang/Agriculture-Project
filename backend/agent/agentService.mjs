@@ -145,10 +145,14 @@ export async function runAgent(listing, buyerDemands) {
       session,
       "The farmer wants to sell produce. Match the listing against the buyer " +
         "requests below. " +
-        "Price eligibility: a buyer must offer at or above this listing's " +
-        "minPrice. Score every eligible buyer 0-100 by fit, rank the top 3 " +
-        "best to worst, pick the best overall match, and draft a short warm " +
-        "outreach message for that best buyer. All data is complete and " +
+        "Each buyer already includes a fitScore computed by the platform " +
+        "from your listing's minPrice. Use each buyer's fitScore and offer " +
+        "exactly as provided — do not invent new scores or offers. A buyer " +
+        "below your minPrice is still a candidate; flag it in the reason as " +
+        "'below your minimum — negotiate', never as accepted. Rank the " +
+        "buyers by fitScore, pick the best overall match (highest " +
+        "fitScore), and draft a short warm outreach message for that best " +
+        "buyer. All data is complete and " +
         "inline — do not read any files.\n\n" +
         "LISTING:\n" +
         JSON.stringify(listing, null, 2) +

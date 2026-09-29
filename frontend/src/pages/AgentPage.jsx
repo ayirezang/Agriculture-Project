@@ -14,7 +14,8 @@ import {
 } from "lucide-react";
 import Badge from "../components/ui/Badge";
 
-const API_URL = "/api";
+// const API_URL = "/api";
+const API_URL= (import.meta.env.VITE_API_URL || "http://localhost:5000/api").replace(/\/$/, "");
 
 const steps = [
   ["Search buyers", "Open buyer requests for this crop"],

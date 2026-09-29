@@ -16,7 +16,8 @@ import StatCard from "../components/ui/StatCard";
 import Badge from "../components/ui/Badge";
 import SectionHeader from "../components/ui/SectionHeader";
 
-const API_URL = "/api";
+// const API_URL = "/api";
+const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:5000/api").replace(/\/$/, "");
 
 export default function BuyerDashboard({ user, onNavigate }) {
   const [requests, setRequests] = useState([]);

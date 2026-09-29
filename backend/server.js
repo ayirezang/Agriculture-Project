@@ -21,7 +21,7 @@ app.use(
   cors({
     origin: [
       // "https://agricproject.vercel.app",
-      "https://agriculture-project-pz8n.vercel.app"
+      "https://agriculture-project-pz8n.vercel.app",
       "http://localhost:5173",
     ],
     credentials: true,

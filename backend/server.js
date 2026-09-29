@@ -22,12 +22,14 @@ connectDB();
 // ==========================================
 // CORS
 // ==========================================
-app.use(
-  cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
-    credentials: true,
-  }),
-);
+// app.use(
+//   cors({
+//     origin: process.env.CLIENT_URL || "http://localhost:5173",
+//     credentials: true,
+//   }),
+// );
+const allowedOrigins = (process.env.CLIENT_URLS || "http://localhost:5173").split(",").map((origin)=> origin.trim()).filter(Boolean)
+app.use(cors({origin: allowedOrigins,credentials:true,}),);
 
 // ==========================================
 // BODY PARSER

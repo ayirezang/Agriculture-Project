@@ -14,7 +14,8 @@ import StatCard from "../components/ui/StatCard";
 import Badge from "../components/ui/Badge";
 import SectionHeader from "../components/ui/SectionHeader";
 
-const API_URL = "/api";
+// const API_URL = "/api";
+const API_URL = (import.meta.env.VITE_API_URL || "https://localhost:5000/api").replace(/\/$/,"");
 
 export default function Dashboard({ user, onNavigate }) {
   // ==========================================
@@ -160,9 +161,9 @@ export default function Dashboard({ user, onNavigate }) {
   return (
     <div className="mx-auto max-w-[1500px] space-y-7">
 
-      {/* =====================================
+      {/* 
           HERO
-      ====================================== */}
+     */}
 
       <section className="mesh overflow-hidden rounded-[2rem] border border-emerald-100 p-6 sm:p-8">
 
@@ -218,9 +219,9 @@ export default function Dashboard({ user, onNavigate }) {
 
       </section>
 
-      {/* =====================================
+      {/* 
           STATISTICS
-      ====================================== */}
+       */}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
 
@@ -262,15 +263,15 @@ export default function Dashboard({ user, onNavigate }) {
 
       </div>
 
-      {/* =====================================
+      {/* 
           MARKETPLACE + AI
-      ====================================== */}
+      */}
 
       <div className="grid gap-6 xl:grid-cols-[1.45fr_.85fr]">
 
-        {/* ===================================
+        {/* 
             RECENT LISTINGS
-        ==================================== */}
+       */}
 
         <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
 
@@ -396,9 +397,9 @@ export default function Dashboard({ user, onNavigate }) {
 
         </section>
 
-        {/* ===================================
+        {/*
             AI AGENT
-        ==================================== */}
+         */}
 
         <section className="rounded-3xl border border-slate-200 bg-slate-950 p-6 text-white shadow-sm">
 
@@ -486,9 +487,9 @@ export default function Dashboard({ user, onNavigate }) {
 
       </div>
 
-      {/* =====================================
+      {/* 
           BUYER MATCHES
-      ====================================== */}
+      */}
 
       <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
 
@@ -565,9 +566,9 @@ export default function Dashboard({ user, onNavigate }) {
 
       </section>
 
-      {/* =====================================
+      {/* 
           TRANSACTIONS
-      ====================================== */}
+     */}
 
       <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
 

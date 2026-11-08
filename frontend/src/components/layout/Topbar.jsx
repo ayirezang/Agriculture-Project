@@ -36,9 +36,9 @@ export default function Topbar({ onMenu, onAgent, user, onLogout, onNavigate }) 
         </form>
 
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
-          {user?.role === "farmer" && (
+          {(user?.role === "farmer" || user?.role === "buyer") && (
             <button onClick={onAgent} className="hidden items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-600/15 hover:bg-emerald-700 sm:flex">
-              <Bot size={17} /> Ask Agent
+              <Bot size={17} /> {user?.role === "buyer" ? "AI Agent" : "Ask Agent"}
             </button>
           )}
 

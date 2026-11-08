@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   ArrowUpRight,
+  Bot,
   CheckCircle2,
   Package,
   RefreshCw,
@@ -108,12 +109,16 @@ export default function BuyerDashboard({ user, onNavigate }) {
     );
   }
 
-  const openRequests = requests.filter(
-    (request) => request.status === "open"
+  const openRequests = requests.filter((request) =>
+    ["pending", "matched"].includes(request.status)
+  );
+
+  const matchedRequests = requests.filter(
+    (request) => request.status === "matched"
   );
 
   const completedRequests = requests.filter(
-    (request) => request.status === "fulfilled"
+    (request) => request.status === "completed"
   );
 
   return (
@@ -158,10 +163,11 @@ export default function BuyerDashboard({ user, onNavigate }) {
             </button>
 
             <button
-              onClick={() => onNavigate("marketplace")}
-              className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50"
+              onClick={() => onNavigate("agent")}
+              className="inline-flex items-center gap-2 rounded-2xl border border-emerald-200 bg-white px-5 py-3 text-sm font-bold text-emerald-700 hover:bg-emerald-50"
             >
-              Browse marketplace
+              <Bot size={18} />
+              Run AI agent
             </button>
 
           </div>
@@ -193,9 +199,9 @@ export default function BuyerDashboard({ user, onNavigate }) {
         />
 
         <StatCard
-          label="Farmers found"
-          value="—"
-          change="Matching system ready"
+          label="Farmer matches"
+          value={matchedRequests.length}
+          change="Ready for outreach"
           icon={Users}
           tone="purple"
         />
@@ -369,6 +375,24 @@ export default function BuyerDashboard({ user, onNavigate }) {
 
           <p className="mt-1 text-sm text-slate-500">
             Connect directly with farmers selling produce.
+          </p>
+        </button>
+
+        <button
+          onClick={() => onNavigate("agent")}
+          className="rounded-3xl border border-slate-200 bg-white p-6 text-left shadow-sm hover:border-emerald-200"
+        >
+          <Bot
+            size={24}
+            className="text-emerald-600"
+          />
+
+          <h3 className="mt-4 font-extrabold">
+            AI Agent
+          </h3>
+
+          <p className="mt-1 text-sm text-slate-500">
+            Match your request to farmers and draft outreach.
           </p>
         </button>
 

@@ -4,17 +4,50 @@ import {
   Check,
   ChevronRight,
   CircleDot,
+  Copy,
   Loader2,
   MessageSquare,
   Package,
   RefreshCw,
+  Send,
   ShieldCheck,
   Sparkles,
   Target,
 } from "lucide-react";
 import Badge from "../components/ui/Badge";
 
-const API_URL = "/api";
+const API_URL = (
+  import.meta.env.VITE_API_URL || "/api"
+).replace(/\/$/, "");
+
+// Convert a local phone number (e.g. 024 123 4567)
+// into the international format WhatsApp expects.
+const toWhatsAppNumber = (phone) => {
+  const digits = String(phone || "").replace(/\D/g, "");
+
+  if (!digits) return "";
+  if (digits.startsWith("233")) return digits;
+  if (digits.startsWith("0")) return `233${digits.slice(1)}`;
+
+  return digits;
+};
+
+const copyText = async (text) => {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const area = document.createElement("textarea");
+  area.value = text;
+  area.setAttribute("readonly", "");
+  area.style.position = "absolute";
+  area.style.left = "-9999px";
+  document.body.appendChild(area);
+  area.select();
+  document.execCommand("copy");
+  document.body.removeChild(area);
+};
 
 const steps = [
   ["Search buyers", "Open buyer requests for this crop"],
@@ -42,6 +75,9 @@ export default function AgentPage({ user, onNavigate }) {
   const [result, setResult] = useState(null);
   const [runError, setRunError] = useState("");
   const [outreachOpen, setOutreachOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [actionMessage, setActionMessage] = useState("");
+  const [savedId, setSavedId] = useState("");
 
   const selectedListing =
     listings.find((l) => l._id === selectedId) || null;
@@ -165,6 +201,7 @@ export default function AgentPage({ user, onNavigate }) {
 
   const matches = result?.matches || [];
   const bestMatch = result?.bestMatch || null;
+  const draftText = result?.outreachDraft || "";
 
   const initialsFor = (name = "Buyer") => {
     return name
@@ -176,6 +213,118 @@ export default function AgentPage({ user, onNavigate }) {
   };
 
   const formatPrice = (price) => Number(price || 0).toFixed(2);
+
+  const openOutreach = () => {
+    setActionMessage("");
+    setSavedId("");
+    setOutreachOpen(true);
+  };
+
+  const saveOutreach = async ({
+    status = "drafted",
+    channel = "whatsapp",
+  } = {}) => {
+    const token = localStorage.getItem("agriconnect_token");
+
+    if (!token) {
+      setActionMessage("Your session has expired. Please login again.");
+      return null;
+    }
+
+    if (!draftText.trim()) {
+      setActionMessage("There is no draft to save yet.");
+      return null;
+    }
+
+    setSaving(true);
+    setActionMessage("");
+
+    try {
+      const response = await fetch(`${API_URL}/outreach`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          listingId: selectedListing?._id,
+          counterpartyId: bestMatch?.buyerId,
+          counterpartyName: bestMatch?.buyer || "Buyer",
+          counterpartyPhone: bestMatch?.phone || "",
+          crop: selectedListing?.crop,
+          quantity: selectedListing?.quantity,
+          unit: selectedListing?.unit,
+          message: draftText,
+          channel,
+          status,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Unable to save outreach.");
+      }
+
+      setSavedId(data.outreach?._id || "");
+      setActionMessage(
+        status === "sent"
+          ? "Outreach saved as sent."
+          : "Draft saved to your outreach pipeline."
+      );
+
+      return data.outreach;
+    } catch (err) {
+      console.error("Save outreach error:", err);
+      setActionMessage(err.message || "Unable to save outreach.");
+      return null;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCopy = async () => {
+    if (!draftText.trim()) {
+      setActionMessage("There is no draft to copy yet.");
+      return;
+    }
+
+    try {
+      await copyText(draftText);
+      setActionMessage(
+        "Message copied. Paste it into WhatsApp, SMS or your email."
+      );
+    } catch (err) {
+      console.error("Copy error:", err);
+      setActionMessage(
+        "Could not copy automatically. Select the text and copy it manually."
+      );
+    }
+  };
+
+  const handleWhatsApp = async () => {
+    const number = toWhatsAppNumber(bestMatch?.phone);
+
+    if (!number) {
+      setActionMessage(
+        "This match has no phone number. Use Copy and contact them directly."
+      );
+      return;
+    }
+
+    if (!draftText.trim()) {
+      setActionMessage("There is no draft to send yet.");
+      return;
+    }
+
+    window.open(
+      `https://wa.me/${number}?text=${encodeURIComponent(draftText)}`,
+      "_blank",
+      "noopener,noreferrer"
+    );
+
+    await saveOutreach({ status: "sent", channel: "whatsapp" });
+  };
 
   return (
     <div className="mx-auto max-w-[1450px] space-y-7">
@@ -567,7 +716,7 @@ export default function AgentPage({ user, onNavigate }) {
               </div>
 
               <button
-                onClick={() => setOutreachOpen(true)}
+                onClick={openOutreach}
                 className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-950 hover:bg-slate-100"
               >
                 <MessageSquare size={16} />
@@ -613,28 +762,66 @@ export default function AgentPage({ user, onNavigate }) {
                 "No draft was generated for this match."}
             </div>
 
-            <div className="mt-4 flex gap-2">
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
               <button
-                onClick={() => {
-                  setOutreachOpen(false);
-                }}
-                className="flex-1 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-700"
+                onClick={handleWhatsApp}
+                disabled={saving || !draftText}
+                className="flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Approve draft
+                <Send size={16} />
+                Send on WhatsApp
+              </button>
+
+              <button
+                onClick={handleCopy}
+                disabled={!draftText}
+                className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Copy size={16} />
+                Copy message
+              </button>
+            </div>
+
+            <div className="mt-2 flex gap-2">
+              <button
+                onClick={() =>
+                  saveOutreach({ status: "drafted", channel: "copy" })
+                }
+                disabled={saving || !draftText}
+                className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {saving
+                  ? "Saving..."
+                  : savedId
+                  ? "Draft saved"
+                  : "Save draft"}
               </button>
 
               <button
                 onClick={() => setOutreachOpen(false)}
-                className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold"
+                className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50"
               >
                 Close
               </button>
             </div>
 
-            <p className="mt-3 text-center text-[11px] font-semibold text-slate-400">
-              Draft only — nothing is sent to the buyer until you
-              approve and send it yourself.
-            </p>
+            {bestMatch?.phone ? (
+              <p className="mt-3 text-center text-[11px] font-semibold text-slate-400">
+                WhatsApp opens with the message pre-filled. You still
+                press send yourself.
+              </p>
+            ) : (
+              <p className="mt-3 text-center text-[11px] font-semibold text-amber-600">
+                No phone number is available for this buyer. Copy the
+                message and contact them directly.
+              </p>
+            )}
+
+            {actionMessage && (
+              <p className="mt-2 text-center text-xs font-semibold text-slate-600">
+                {actionMessage}
+              </p>
+            )}
           </div>
         </div>
       )}

@@ -39,7 +39,30 @@ function seedMemory(listing, buyerDemands) {
 }
 let sessionPromise = null;
 
-async function createSession() {
+const FARMER_SYSTEM_PROMPT =
+  "You are the AgriConnect AI selling assistant for a farmer. " +
+  "The farmer's produce listing and all candidate buyer requests are " +
+  "provided in the user message. Match the listing against the buyers. " +
+  "Do NOT use any tools, do NOT read any files, and do NOT ask clarifying " +
+  "questions. Reply with ONLY one JSON object and nothing else, shaped as: " +
+  '{"matches":[{"buyer":"buyer name","offer":3.55,"fitScore":85,"reason":"short reason"}],' +
+  '"bestMatch":{"buyer":"buyer name","offer":3.55,"fitScore":85,"reason":"short reason"},' +
+  '"outreachDraft":"a short, warm outreach message to the best buyer"}';
+
+const BUYER_SYSTEM_PROMPT =
+  "You are the AgriConnect AI sourcing assistant for a buyer. " +
+  "The buyer's request and all candidate farmer listings are provided in " +
+  "the user message. Match the buyer request against the farmer listings. " +
+  "Use each listing's fitScore and distanceKm exactly as provided — do not " +
+  "invent new scores, prices, distances or farmers. Never propose a price " +
+  "above the buyer's maxPrice. Do NOT use any tools, do NOT read any files, " +
+  "and do NOT ask clarifying questions. Reply with ONLY one JSON object and " +
+  "nothing else, shaped as: " +
+  '{"matches":[{"listingId":"listing id","farmer":"farmer name","price":0,"fitScore":85,"distanceKm":0,"reason":"short reason"}],' +
+  '"bestMatch":{"listingId":"listing id","farmer":"farmer name","price":0,"fitScore":85,"distanceKm":0,"reason":"short reason"},' +
+  '"outreachDraft":"a short, warm message to the best farmer"}';
+
+async function createSession(systemPrompt = FARMER_SYSTEM_PROMPT) {
   const modelRuntime = await ModelRuntime.create();
   const preferred = ["qwen/qwen3.8-27b", "openai/gpt-oss-20b"];
   const model = await pickGroqModel(modelRuntime, preferred);
@@ -51,15 +74,7 @@ async function createSession() {
     // brain, skills and workspace context files so the request stays small
     // (avoids multi-turn file reads and rate-limit waits).
     noContextFiles: true,
-    systemPromptOverride: () =>
-      "You are the AgriConnect AI selling assistant for a farmer. " +
-      "The farmer's produce listing and all candidate buyer requests are " +
-      "provided in the user message. Match the listing against the buyers. " +
-      "Do NOT use any tools, do NOT read any files, and do NOT ask clarifying " +
-      "questions. Reply with ONLY one JSON object and nothing else, shaped as: " +
-      '{"matches":[{"buyer":"buyer name","offer":3.55,"fitScore":85,"reason":"short reason"}],' +
-      '"bestMatch":{"buyer":"buyer name","offer":3.55,"fitScore":85,"reason":"short reason"},' +
-      '"outreachDraft":"a short, warm outreach message to the best buyer"}',
+    systemPromptOverride: () => systemPrompt,
   });
   await loader.reload();
   const { session } = await createAgentSession({
@@ -75,9 +90,9 @@ async function createSession() {
   return session;
 }
 
-async function getSession() {
+async function getSession(systemPrompt = FARMER_SYSTEM_PROMPT) {
   if (sessionPromise) return sessionPromise;
-  return createSession();
+  return createSession(systemPrompt);
 }
 
 function resetSessionForNewRun() {
@@ -211,6 +226,81 @@ export async function runAgent(listing, buyerDemands) {
       success: false,
       message:
         "The agent did not return usable buyer matches. Look at the raw reply below and try again.",
+      matches: [],
+      bestMatch: null,
+      outreachDraft: "",
+      raw: trimmed,
+    };
+  }
+}
+
+export async function runBuyerAgent(buyerRequest, farmerListings) {
+  resetSessionForNewRun();
+  const session = await getSession(BUYER_SYSTEM_PROMPT);
+  const events = [];
+  const unsub = session.subscribe((event) => {
+    events.push(
+      event.type +
+        (event.assistantMessageEvent?.type
+          ? `/${event.assistantMessageEvent.type}`
+          : ""),
+    );
+  });
+  try {
+    await promptWithRetry(
+      session,
+      "The buyer wants to source produce. Match the buyer request against " +
+        "the farmer listings below. " +
+        "Each listing already includes a fitScore and distanceKm computed " +
+        "by the platform from the buyer's maxPrice, location, pickup radius " +
+        "and quantity. Use each listing's fitScore, price and distanceKm " +
+        "exactly as provided — do not invent new scores, prices, distances " +
+        "or farmers. Never propose a price above the buyer's maxPrice. " +
+        "Rank the listings by fitScore, pick the best overall match (highest " +
+        "fitScore), and draft a short warm outreach message to that farmer. " +
+        "In the draft, quote that listing's exact pricePerKg and quantity. " +
+        "All data is complete and inline — do not read any files.\n\n" +
+        "BUYER REQUEST:\n" +
+        JSON.stringify(buyerRequest, null, 2) +
+        "\n\nFARMER LISTINGS:\n" +
+        JSON.stringify(farmerListings, null, 2) +
+        "\n\nReply with ONLY the JSON object and nothing else: " +
+        '{"matches":[{"listingId":"listing id","farmer":"farmer name","price":0,"fitScore":85,"distanceKm":0,"reason":"..."}],' +
+        '"bestMatch":{"listingId":"listing id","farmer":"farmer name","price":0,"fitScore":85,"distanceKm":0,"reason":"..."},' +
+        '"outreachDraft":"the drafted message here"}',
+    );
+  } finally {
+    unsub();
+  }
+  console.log("BUYER EVENTS:", JSON.stringify(events));
+  const text = session.messages
+    .filter((m) => m.role === "assistant")
+    .flatMap((m) => {
+      if (typeof m.content === "string") return [m.content];
+      if (!Array.isArray(m.content)) return [];
+      return m.content
+        .flatMap((b) => {
+          if (b?.type === "text") return b.text;
+          if (typeof b?.text === "string") return b.text;
+          return [];
+        })
+        .filter((t) => typeof t === "string");
+    })
+    .join("\n");
+  const trimmed = text.trim();
+  try {
+    const parsed = parseJsonReply(trimmed);
+    if (!parsed) throw new Error("no JSON object found");
+    return {
+      matches: Array.isArray(parsed.matches) ? parsed.matches : [],
+      bestMatch: parsed.bestMatch ?? null,
+      outreachDraft: parsed.outreachDraft ?? "",
+    };
+  } catch {
+    return {
+      success: false,
+      message:
+        "The agent did not return usable farmer matches. Look at the raw reply below and try again.",
       matches: [],
       bestMatch: null,
       outreachDraft: "",

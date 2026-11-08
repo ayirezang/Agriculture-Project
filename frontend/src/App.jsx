@@ -28,6 +28,7 @@ import BuyerDashboard from "./pages/BuyerDashboard";
 import SellProduce from "./pages/SellProduce";
 import Marketplace from "./pages/Marketplace";
 import AgentPage from "./pages/AgentPage";
+import BuyerAgentPage from "./pages/BuyerAgentPage";
 import Buyers from "./pages/Buyers";
 import Analytics from "./pages/Analytics";
 import SettingsPage from "./pages/SettingsPage";
@@ -112,6 +113,12 @@ const navigationByRole = {
       id: "requests",
       label: "My Requests",
       icon: ClipboardList,
+    },
+    {
+      id: "agent",
+      label: "AI Agent",
+      icon: Bot,
+      badge: "Live",
     },
     {
       id: "analytics",
@@ -497,20 +504,29 @@ export default function App() {
 
       // ======================================
       // AI AGENT
-      // FARMER ONLY
+      // FARMER + BUYER
       // ======================================
 
       case "agent":
-        if (user?.role !== "farmer") {
-          return dashboardPage;
+        if (user?.role === "farmer") {
+          return (
+            <AgentPage
+              user={user}
+              onNavigate={navigate}
+            />
+          );
         }
 
-        return (
-          <AgentPage
-            user={user}
-            onNavigate={navigate}
-          />
-        );
+        if (user?.role === "buyer") {
+          return (
+            <BuyerAgentPage
+              user={user}
+              onNavigate={navigate}
+            />
+          );
+        }
+
+        return dashboardPage;
 
       // ======================================
       // FARMER

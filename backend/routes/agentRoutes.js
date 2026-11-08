@@ -1,5 +1,8 @@
 const express = require("express");
-const { runSalesAgent } = require("../controllers/agentController");
+const {
+  runSalesAgent,
+  runBuyerSourcingAgent,
+} = require("../controllers/agentController");
 const { protect } = require("../middleware/authMiddleware");
 const { authorizeRoles } = require("../middleware/roleMiddleware");
 
@@ -13,6 +16,13 @@ router.post(
   protect,
   authorizeRoles("farmer"),
   asyncHandler(runSalesAgent)
+);
+
+router.post(
+  "/buyer/run/:id",
+  protect,
+  authorizeRoles("buyer"),
+  asyncHandler(runBuyerSourcingAgent)
 );
 
 module.exports = router;

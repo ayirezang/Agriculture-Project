@@ -128,6 +128,17 @@ const createListing = async (req, res) => {
       availableUntil:
         availableUntil || undefined,
 
+      expiresAt:
+        availableUntil &&
+        !Number.isNaN(
+          new Date(availableUntil).getTime()
+        )
+          ? new Date(availableUntil)
+          : new Date(
+              Date.now() +
+                14 * 24 * 60 * 60 * 1000
+            ),
+
       status: "active",
     });
 
@@ -240,6 +251,14 @@ const getListings = async (req, res) => {
 
     const filter = {
       status: "active",
+
+      // Hide expired listings. Older listings that
+      // predate the expiry feature stay visible.
+      $or: [
+        { expiresAt: { $exists: false } },
+        { expiresAt: null },
+        { expiresAt: { $gt: new Date() } },
+      ],
     };
 
     // ==========================================
@@ -712,6 +731,68 @@ const deleteListing = async (req, res) => {
 };
 
 // ==========================================
+// RENEW LISTING
+// ==========================================
+const renewListing = async (req, res) => {
+  try {
+    const listing = await Listing.findById(
+      req.params.id
+    );
+
+    if (!listing) {
+      return res.status(404).json({
+        success: false,
+        message: "Listing not found",
+      });
+    }
+
+    if (
+      String(listing.farmer) !==
+      String(req.user._id)
+    ) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "You can only renew your own listings",
+      });
+    }
+
+    if (listing.status === "sold") {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Sold listings cannot be renewed",
+      });
+    }
+
+    listing.status = "active";
+    listing.expiresAt = new Date(
+      Date.now() + 14 * 24 * 60 * 60 * 1000
+    );
+
+    await listing.save();
+
+    res.status(200).json({
+      success: true,
+      message:
+        "Listing renewed for 14 days",
+      listing,
+    });
+  } catch (error) {
+    console.error(
+      "Renew listing error:",
+      error
+    );
+
+    res.status(500).json({
+      success: false,
+      message:
+        "Server error while renewing listing",
+    });
+  }
+};
+
+// ==========================================
 // EXPORT CONTROLLERS
 // ==========================================
 module.exports = {
@@ -721,4 +802,5 @@ module.exports = {
   getListingById,
   updateListing,
   deleteListing,
+  renewListing,
 };

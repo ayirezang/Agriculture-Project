@@ -7,6 +7,7 @@ const {
   getListingById,
   updateListing,
   deleteListing,
+  renewListing,
 } = require("../controllers/listingController");
 
 const { protect } = require("../middleware/authMiddleware");
@@ -59,6 +60,14 @@ router.delete(
   protect,
   authorizeRoles("farmer"),
   deleteListing
+);
+
+// Renew own listing for another 14 days
+router.patch(
+  "/:id/renew",
+  protect,
+  authorizeRoles("farmer"),
+  renewListing
 );
 
 module.exports = router;

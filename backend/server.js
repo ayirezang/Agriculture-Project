@@ -10,6 +10,8 @@ const dashboardRoutes = require("./routes/dashboardRoutes");
 const buyerRequestRoutes = require("./routes/buyerRequestRoutes");
 const agentRoutes = require("./routes/agentRoutes");
 const outreachRoutes = require("./routes/outreachRoutes");
+const interestRoutes = require("./routes/interestRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
 
 dotenv.config();
 
@@ -55,6 +57,8 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/buyer-requests", buyerRequestRoutes);
 app.use("/api/agent", agentRoutes);
 app.use("/api/outreach", outreachRoutes);
+app.use("/api/interests", interestRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // ==========================================
 // HEALTH CHECK

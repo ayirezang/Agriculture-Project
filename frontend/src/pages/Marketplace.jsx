@@ -8,6 +8,7 @@ import {
   X,
   MessageSquare,
   RefreshCw,
+  Send,
   Package,
   Loader2,
   CheckCircle2,
@@ -53,6 +54,8 @@ export default function Marketplace({ user, onNavigate }) {
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [interestStatus, setInterestStatus] = useState({});
+  const [interestError, setInterestError] = useState("");
 
   // ==========================================
   // BUYER REQUEST FORM
@@ -363,6 +366,89 @@ export default function Marketplace({ user, onNavigate }) {
 
     setSelected(null);
     setShowRequestForm(true);
+  };
+
+  // ==========================================
+  // EXPRESS INTEREST IN A LISTING
+  // ==========================================
+
+  const handleInterest = async (listing) => {
+    if (!isBuyer || !listing?._id) {
+      return;
+    }
+
+    const token = getToken();
+
+    if (!token) {
+      setInterestError(
+        "Please log in to express interest."
+      );
+      return;
+    }
+
+    setInterestError("");
+
+    setInterestStatus((prev) => ({
+      ...prev,
+      [listing._id]: "sending",
+    }));
+
+    try {
+      const response = await fetch(
+        `${API_URL}/interests`,
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+
+          body: JSON.stringify({
+            listingId: listing._id,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      // Already sent earlier
+      if (response.status === 409) {
+        setInterestStatus((prev) => ({
+          ...prev,
+          [listing._id]: "sent",
+        }));
+        return;
+      }
+
+      if (!response.ok || !data.success) {
+        throw new Error(
+          data?.message ||
+            "Unable to send interest."
+        );
+      }
+
+      setInterestStatus((prev) => ({
+        ...prev,
+        [listing._id]: "sent",
+      }));
+    } catch (err) {
+      console.error(
+        "Send interest error:",
+        err
+      );
+
+      setInterestStatus((prev) => ({
+        ...prev,
+        [listing._id]: "error",
+      }));
+
+      setInterestError(
+        err.message ||
+          "Unable to send interest."
+      );
+    }
   };
 
   // ==========================================
@@ -726,6 +812,12 @@ export default function Marketplace({ user, onNavigate }) {
         )}
       </div>
 
+      {interestError && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
+          {interestError}
+        </div>
+      )}
+
       {/* LOADING */}
 
       {loading && (
@@ -906,15 +998,53 @@ export default function Marketplace({ user, onNavigate }) {
                       Pickup / delivery negotiable
                     </span>
 
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setSelected(listing)
-                      }
-                      className="ml-auto font-bold text-emerald-600 hover:text-emerald-700"
-                    >
-                      View details →
-                    </button>
+                    <div className="ml-auto flex items-center gap-3">
+                      {isBuyer && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleInterest(
+                              listing
+                            )
+                          }
+                          disabled={
+                            interestStatus[
+                              listing._id
+                            ] === "sending" ||
+                            interestStatus[
+                              listing._id
+                            ] === "sent"
+                          }
+                          className={`rounded-xl px-3 py-2 text-xs font-bold transition ${
+                            interestStatus[
+                              listing._id
+                            ] === "sent"
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "bg-emerald-600 text-white hover:bg-emerald-700"
+                          } disabled:cursor-default`}
+                        >
+                          {interestStatus[
+                            listing._id
+                          ] === "sent"
+                            ? "Interest sent"
+                            : interestStatus[
+                                listing._id
+                              ] === "sending"
+                            ? "Sending..."
+                            : "I'm interested"}
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelected(listing)
+                        }
+                        className="font-bold text-emerald-600 hover:text-emerald-700"
+                      >
+                        View details →
+                      </button>
+                    </div>
                   </div>
                 </article>
               );
@@ -1049,6 +1179,20 @@ export default function Marketplace({ user, onNavigate }) {
                   {selected.status}
                 </b>
               </div>
+
+              <div className="rounded-2xl bg-slate-50 p-4">
+                <p className="text-xs text-slate-400">
+                  Expires
+                </p>
+
+                <b>
+                  {selected.expiresAt
+                    ? formatDate(
+                        selected.expiresAt
+                      )
+                    : "Not set"}
+                </b>
+              </div>
             </div>
 
             {/* DESCRIPTION */}
@@ -1068,16 +1212,52 @@ export default function Marketplace({ user, onNavigate }) {
             {/* ACTION */}
 
             {isBuyer && (
-              <button
-                type="button"
-                onClick={() =>
-                  handleMakeOffer(selected)
-                }
-                className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-700"
-              >
-                <MessageSquare size={16} />
-                Make a request
-              </button>
+              <div className="mt-5 space-y-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleInterest(selected)
+                  }
+                  disabled={
+                    interestStatus[
+                      selected._id
+                    ] === "sending" ||
+                    interestStatus[
+                      selected._id
+                    ] === "sent"
+                  }
+                  className={`flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-bold transition ${
+                    interestStatus[
+                      selected._id
+                    ] === "sent"
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "bg-emerald-600 text-white hover:bg-emerald-700"
+                  } disabled:cursor-default`}
+                >
+                  <Send size={16} />
+
+                  {interestStatus[
+                    selected._id
+                  ] === "sent"
+                    ? "Interest sent"
+                    : interestStatus[
+                        selected._id
+                      ] === "sending"
+                    ? "Sending..."
+                    : "I'm interested"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleMakeOffer(selected)
+                  }
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50"
+                >
+                  <MessageSquare size={16} />
+                  Make a request
+                </button>
+              </div>
             )}
           </div>
         </div>

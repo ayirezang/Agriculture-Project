@@ -1,10 +1,119 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Menu, Bell, Bot, Search, LogOut, UserRound } from "lucide-react";
+
+const API_URL = (
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:5000/api"
+).replace(/\/$/, "");
+
+const timeAgo = (date) => {
+  const diff = Date.now() - new Date(date).getTime();
+  const mins = Math.floor(diff / 60000);
+
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+
+  return `${Math.floor(hours / 24)}d ago`;
+};
+
+const whatsappLink = (phone, message) => {
+  let digits = String(phone || "").replace(/\D/g, "");
+  if (digits.startsWith("0")) digits = `233${digits.slice(1)}`;
+
+  return digits
+    ? `https://wa.me/${digits}?text=${encodeURIComponent(message || "")}`
+    : "";
+};
 
 export default function Topbar({ onMenu, onAgent, user, onLogout, onNavigate }) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+
+  const fetchNotifications = async () => {
+    const token = localStorage.getItem("agriconnect_token");
+
+    if (!token) {
+      setNotifications([]);
+      setUnreadCount(0);
+      return;
+    }
+
+    setNotificationsLoading(true);
+
+    try {
+      const response = await fetch(`${API_URL}/notifications`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!response.ok) return;
+
+      const data = await response.json();
+
+      if (data?.success) {
+        setNotifications(Array.isArray(data.notifications) ? data.notifications : []);
+        setUnreadCount(Number(data.unreadCount) || 0);
+      }
+    } catch (err) {
+      console.error("Notifications error:", err);
+    } finally {
+      setNotificationsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const markRead = async (notification) => {
+    if (!notification || notification.read) return;
+
+    const token = localStorage.getItem("agriconnect_token");
+    if (!token) return;
+
+    try {
+      await fetch(`${API_URL}/notifications/${notification._id}/read`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setNotifications((prev) =>
+        prev.map((item) =>
+          item._id === notification._id ? { ...item, read: true } : item
+        )
+      );
+
+      setUnreadCount((count) => Math.max(0, count - 1));
+    } catch (err) {
+      console.error("Mark notification error:", err);
+    }
+  };
+
+  const markAllRead = async () => {
+    const token = localStorage.getItem("agriconnect_token");
+    if (!token) return;
+
+    try {
+      await fetch(`${API_URL}/notifications/read-all`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
+      setUnreadCount(0);
+    } catch (err) {
+      console.error("Mark all notifications error:", err);
+    }
+  };
 
   const submitSearch = (e) => {
     e.preventDefault();
@@ -43,26 +152,99 @@ export default function Topbar({ onMenu, onAgent, user, onLogout, onNavigate }) 
           )}
 
           <div className="relative">
-            <button onClick={() => { setNotificationsOpen(!notificationsOpen); setProfileOpen(false); }} className="relative rounded-xl border border-slate-200 p-2.5 text-slate-500 hover:bg-slate-50" aria-label="Notifications">
+            <button
+              onClick={() => {
+                const next = !notificationsOpen;
+                setNotificationsOpen(next);
+                setProfileOpen(false);
+                if (next) fetchNotifications();
+              }}
+              className="relative rounded-xl border border-slate-200 p-2.5 text-slate-500 hover:bg-slate-50"
+              aria-label="Notifications"
+            >
               <Bell size={19} />
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-orange-500 ring-2 ring-white" />
+              {unreadCount > 0 && (
+                <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-orange-500 ring-2 ring-white" />
+              )}
             </button>
             {notificationsOpen && (
-              <div className="absolute right-0 top-14 z-50 w-80 rounded-2xl border border-slate-200 bg-white p-4 shadow-xl">
-                <div className="flex items-center justify-between">
+              <div className="absolute right-0 top-14 z-50 w-80 max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-200 bg-white p-4 shadow-xl">
+                <div className="flex items-center justify-between gap-2">
                   <p className="font-extrabold">Notifications</p>
-                  <span className="text-[10px] font-bold text-emerald-600">3 new</span>
-                </div>
-                <div className="mt-3 space-y-2">
-                  {[
-                    ["Buyer match", "Eastern Grains Ltd. is a 98% fit."],
-                    ["Agent", "Outreach draft is ready for review."],
-                    ["Marketplace", "14 buyer requests are active."],
-                  ].map(([title, detail]) => (
-                    <button key={title} onClick={() => { setNotificationsOpen(false); onNavigate(title === "Buyer match" ? "marketplace" : "agent"); }} className="w-full rounded-xl bg-slate-50 p-3 text-left hover:bg-emerald-50">
-                      <p className="text-xs font-bold">{title}</p>
-                      <p className="mt-1 text-xs text-slate-500">{detail}</p>
+                  {unreadCount > 0 ? (
+                    <button
+                      onClick={markAllRead}
+                      className="text-[10px] font-bold text-emerald-600 hover:underline"
+                    >
+                      Mark all read
                     </button>
+                  ) : (
+                    <span className="text-[10px] font-bold text-slate-400">
+                      All caught up
+                    </span>
+                  )}
+                </div>
+                <div className="mt-3 max-h-80 space-y-2 overflow-y-auto">
+                  {notificationsLoading && notifications.length === 0 && (
+                    <p className="rounded-xl bg-slate-50 p-3 text-xs text-slate-500">
+                      Loading...
+                    </p>
+                  )}
+
+                  {!notificationsLoading && notifications.length === 0 && (
+                    <p className="rounded-xl bg-slate-50 p-3 text-xs text-slate-500">
+                      No notifications yet. When someone is interested in your listing or request, it will appear here.
+                    </p>
+                  )}
+
+                  {notifications.map((notification) => (
+                    <div
+                      key={notification._id}
+                      className={`rounded-xl p-3 ${
+                        notification.read ? "bg-slate-50" : "bg-emerald-50"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-xs font-bold">
+                            {notification.title}
+                          </p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            {notification.body}
+                          </p>
+                          <p className="mt-1 text-[10px] text-slate-400">
+                            {timeAgo(notification.createdAt)}
+                          </p>
+                        </div>
+                        {!notification.read && (
+                          <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
+                        )}
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {notification.phone && (
+                          <a
+                            href={whatsappLink(
+                              notification.phone,
+                              `Hi ${notification.counterpartyName || ""}, I saw your interest on AgriConnect.`
+                            )}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={() => markRead(notification)}
+                            className="rounded-lg bg-emerald-600 px-2.5 py-1.5 text-[10px] font-bold text-white hover:bg-emerald-700"
+                          >
+                            WhatsApp
+                          </a>
+                        )}
+                        {!notification.read && (
+                          <button
+                            onClick={() => markRead(notification)}
+                            className="rounded-lg bg-white px-2.5 py-1.5 text-[10px] font-bold text-slate-600 hover:bg-slate-100"
+                          >
+                            Mark read
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>

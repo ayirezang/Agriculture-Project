@@ -84,6 +84,16 @@ const getDashboard = async (req, res) => {
       status: request.status,
     }));
 
+    // Open requests give farmers a way to respond even
+    // when the buyer's price is slightly below their minimum.
+    const openRequests = await BuyerRequest.find({
+      status: "pending",
+    })
+      .populate("buyer", "name email phone location")
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .lean();
+
     res.status(200).json({
       success: true,
 
@@ -99,6 +109,24 @@ const getDashboard = async (req, res) => {
       recentListings,
 
       buyerMatches,
+
+      openRequests: openRequests.map((request) => ({
+        id: request._id,
+        buyer: request.buyer
+          ? request.buyer.name
+          : "Buyer",
+        crop: request.crop,
+        offer: request.maxPrice,
+        unit: request.unit,
+        quantity: request.quantity,
+        town:
+          request.location?.town ?? null,
+        region:
+          request.location?.region ?? null,
+        requiredBy:
+          request.requiredBy ?? null,
+        status: request.status,
+      })),
 
       transactions: [],
     });

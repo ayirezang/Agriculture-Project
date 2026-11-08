@@ -95,6 +95,17 @@ const listingSchema = new mongoose.Schema(
     availableUntil: {
       type: Date,
     },
+
+    // ==========================================
+    // AUTOMATIC EXPIRY
+    // ==========================================
+    // Stale listings disappear from the marketplace
+    // unless the farmer renews them.
+    // ==========================================
+    expiresAt: {
+      type: Date,
+      index: true,
+    },
   },
   {
     timestamps: true,

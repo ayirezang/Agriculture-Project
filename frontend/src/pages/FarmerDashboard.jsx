@@ -27,6 +27,77 @@ export default function Dashboard({ user, onNavigate }) {
 
   const [error, setError] = useState("");
 
+  const [interestStatus, setInterestStatus] = useState({});
+
+  const [actionError, setActionError] = useState("");
+
+  // ==========================================
+  // EXPRESS INTEREST IN A BUYER REQUEST
+  // ==========================================
+
+  const handleRequestInterest = async (request) => {
+    const token = localStorage.getItem("agriconnect_token");
+
+    if (!token) {
+      setActionError("Your session has expired. Please login again.");
+      return;
+    }
+
+    setActionError("");
+
+    setInterestStatus((prev) => ({
+      ...prev,
+      [request.id]: "sending",
+    }));
+
+    try {
+      const response = await fetch(`${API_URL}/interests`, {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+
+        body: JSON.stringify({
+          buyerRequestId: request.id,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.status === 409) {
+        setInterestStatus((prev) => ({
+          ...prev,
+          [request.id]: "sent",
+        }));
+        return;
+      }
+
+      if (!response.ok || !data.success) {
+        throw new Error(
+          data?.message || "Unable to send interest."
+        );
+      }
+
+      setInterestStatus((prev) => ({
+        ...prev,
+        [request.id]: "sent",
+      }));
+    } catch (err) {
+      console.error("Send interest error:", err);
+
+      setInterestStatus((prev) => ({
+        ...prev,
+        [request.id]: "error",
+      }));
+
+      setActionError(
+        err.message || "Unable to send interest."
+      );
+    }
+  };
+
   // ==========================================
   // FETCH DASHBOARD
   // ==========================================
@@ -150,6 +221,17 @@ export default function Dashboard({ user, onNavigate }) {
   const recentListings = dashboard?.recentListings || [];
 
   const buyerMatches = dashboard?.buyerMatches || [];
+
+  const matchedRequestIds = new Set(
+    buyerMatches.map((match) => String(match.id))
+  );
+
+  const openRequests = (
+    dashboard?.openRequests || []
+  ).filter(
+    (request) =>
+      !matchedRequestIds.has(String(request.id))
+  );
 
   const transactions = dashboard?.transactions || [];
 
@@ -546,13 +628,166 @@ export default function Dashboard({ user, onNavigate }) {
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-black text-emerald-600">
-                      GH₵ {Number(buyer.offer || 0).toFixed(2)}
-                    </p>
-                    <p className="text-xs text-slate-400">
-                      {Number(buyer.listingMinPrice || 0).toFixed(2)} min price
-                    </p>
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <p className="font-black text-emerald-600">
+                        GH₵ {Number(buyer.offer || 0).toFixed(2)}
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        {Number(buyer.listingMinPrice || 0).toFixed(2)} min price
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleRequestInterest(buyer)}
+                      disabled={
+                        interestStatus[buyer.id] === "sending" ||
+                        interestStatus[buyer.id] === "sent"
+                      }
+                      className={`rounded-xl px-3 py-2 text-xs font-bold ${
+                        interestStatus[buyer.id] === "sent"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : "bg-emerald-600 text-white hover:bg-emerald-700"
+                      } disabled:cursor-default`}
+                    >
+                      {interestStatus[buyer.id] === "sent"
+                        ? "Interest sent"
+                        : interestStatus[buyer.id] === "sending"
+                        ? "Sending..."
+                        : "I'm interested"}
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+            </div>
+
+          )}
+
+        </div>
+
+      </section>
+
+      {/* =====================================
+          OPEN BUYER REQUESTS
+      ====================================== */}
+
+      <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+
+        <SectionHeader
+          eyebrow="Respond"
+          title="Open buyer requests"
+          description="See what buyers need and express interest, even if their price is slightly below your minimum."
+        />
+
+        <div className="mt-6">
+
+          {actionError && (
+            <p className="mb-3 rounded-xl bg-red-50 p-3 text-xs font-semibold text-red-600">
+              {actionError}
+            </p>
+          )}
+
+          {openRequests.length === 0 ? (
+
+            <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center">
+
+              <Users
+                size={30}
+                className="mx-auto text-slate-300"
+              />
+
+              <p className="mt-3 font-bold text-slate-700">
+                No open buyer requests
+              </p>
+
+              <p className="mt-1 text-sm text-slate-400">
+                New buyer requests will appear here.
+              </p>
+
+            </div>
+
+          ) : (
+
+            <div className="space-y-3">
+
+              {openRequests.map((request) => (
+                <div
+                  key={request.id}
+                  className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-blue-100 text-sm font-black text-blue-700">
+                      {(request.buyer || "B")
+                        .split(" ")
+                        .map((word) => word[0])
+                        .join("")
+                        .slice(0, 2)
+                        .toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="font-bold text-slate-800">
+                        {request.buyer}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {request.crop}
+                        {request.quantity
+                          ? ` • ${request.quantity}${request.unit || ""}`
+                          : ""}
+                        {request.town
+                          ? ` • ${request.town}`
+                          : ""}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 sm:text-right">
+                    <div>
+                      <p className="font-black text-emerald-600">
+                        GH₵{" "}
+                        {Number(
+                          request.offer || 0
+                        ).toFixed(2)}
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        max price / {request.unit || "kg"}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleRequestInterest(
+                          request
+                        )
+                      }
+                      disabled={
+                        interestStatus[
+                          request.id
+                        ] === "sending" ||
+                        interestStatus[
+                          request.id
+                        ] === "sent"
+                      }
+                      className={`rounded-xl px-3 py-2 text-xs font-bold ${
+                        interestStatus[
+                          request.id
+                        ] === "sent"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : "bg-emerald-600 text-white hover:bg-emerald-700"
+                      } disabled:cursor-default`}
+                    >
+                      {interestStatus[
+                        request.id
+                      ] === "sent"
+                        ? "Interest sent"
+                        : interestStatus[
+                            request.id
+                          ] === "sending"
+                        ? "Sending..."
+                        : "I'm interested"}
+                    </button>
                   </div>
                 </div>
               ))}

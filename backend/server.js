@@ -15,59 +15,60 @@ dotenv.config();
 
 const app = express();
 
-//
-// CONNECT TO DATABASE
-//
-connectDB();
+// ==========================================
+// CORS CONFIGURATION
+// ==========================================
+const allowedOrigins = [
+  "https://agriculture-project-pz8n.vercel.app",
+  "http://localhost:5173",
+];
 
-//
-// CORS
-// =
+if (process.env.CLIENT_URL) {
+  allowedOrigins.push(process.env.CLIENT_URL);
+}
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: allowedOrigins,
     credentials: true,
-  }),
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
 );
 
-//
-// BODY PARSER
-//
+// ==========================================
+// MIDDLEWARE
+// ==========================================
 app.use(express.json());
 
-//
-// API ROUTES
-//
+// ==========================================
+// DATABASE
+// ==========================================
+connectDB();
 
-// Authentication
+// ==========================================
+// ROUTES
+// ==========================================
 app.use("/api/auth", authRoutes);
-app.use("/api/agent", agentRoutes);
-
-// Farmer produce listings
 app.use("/api/listings", listingRoutes);
-
-// Farmer dashboard
 app.use("/api/dashboard", dashboardRoutes);
-
-// Buyer requests
 app.use("/api/buyer-requests", buyerRequestRoutes);
-
-// Outreach pipeline (drafts + sent messages)
+app.use("/api/agent", agentRoutes);
 app.use("/api/outreach", outreachRoutes);
 
-//
+// ==========================================
 // HEALTH CHECK
-//
+// ==========================================
 app.get("/", (req, res) => {
-  res.status(200).json({
+  res.json({
     success: true,
     message: "AgriConnect AI backend is running",
   });
 });
 
-//
+// ==========================================
 // UNKNOWN API ROUTE
-// =
+// ==========================================
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -75,9 +76,9 @@ app.use((req, res) => {
   });
 });
 
-//
+// ==========================================
 // GLOBAL ERROR HANDLER
-//
+// ==========================================
 app.use((error, req, res, next) => {
   console.error("Unhandled server error:", error);
 
@@ -87,11 +88,11 @@ app.use((error, req, res, next) => {
   });
 });
 
-//
-// START SERVER
-//
+// ==========================================
+// SERVER
+// ==========================================
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, "0.0.0.0", () => {
+app.listen(PORT, () => {
   console.log(`AgriConnect AI server running on port ${PORT}`);
 });

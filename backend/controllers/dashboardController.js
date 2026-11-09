@@ -1,5 +1,6 @@
 const Listing = require("../models/Listing");
 const BuyerRequest = require("../models/BuyerRequest");
+const Interest = require("../models/Interest");
 
 const getDashboard = async (req, res) => {
   try {
@@ -20,11 +21,65 @@ const getDashboard = async (req, res) => {
       (listing) => listing.status === "active"
     );
 
-    const soldListings = listings.filter(
+    const sold = listings.filter(
       (listing) => listing.status === "sold"
-    ).length;
+    );
+
+    const soldListings = sold.length;
 
     const recentListings = listings.slice(0, 5);
+
+    // Build transaction history from sold listings. If a buyer had an
+    // accepted interest on a listing, use their name; otherwise fall
+    // back to a generic label.
+    const soldBuyerByListing = {};
+
+    if (sold.length > 0) {
+      const acceptedInterests = await Interest.find({
+        listing: { $in: sold.map((listing) => listing._id) },
+        status: "accepted",
+      }).populate("sender", "name");
+
+      for (const interest of acceptedInterests) {
+        if (!interest.listing) continue;
+
+        const key = String(interest.listing);
+
+        if (!soldBuyerByListing[key]) {
+          soldBuyerByListing[key] = interest.sender
+            ? interest.sender.name
+            : "Marketplace sale";
+        }
+      }
+    }
+
+    const transactions = sold
+      .slice()
+      .sort(
+        (a, b) =>
+          new Date(b.updatedAt) - new Date(a.updatedAt)
+      )
+      .map((listing) => {
+        const price = Number(listing.minPrice || 0);
+        const quantity = Number(listing.quantity || 0);
+
+        return {
+          id: listing._id,
+          crop: listing.crop,
+          buyer:
+            soldBuyerByListing[String(listing._id)] ||
+            "Marketplace sale",
+          price: `GH₵ ${price.toFixed(2)}/${listing.unit}`,
+          total: `GH₵ ${(price * quantity).toFixed(2)}`,
+          status: "Completed",
+          date: new Date(
+            listing.updatedAt
+          ).toLocaleDateString("en-GB", {
+            day: "2-digit",
+            month: "short",
+          }),
+        };
+      });
 
     // Buyer matches: open buyer requests that fit one of this farmer's
     // active listings (same crop, buyer's maxPrice at or above the
@@ -128,7 +183,7 @@ const getDashboard = async (req, res) => {
         status: request.status,
       })),
 
-      transactions: [],
+      transactions,
     });
   } catch (error) {
     console.error("Dashboard error:", error);

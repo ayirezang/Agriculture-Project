@@ -32,6 +32,64 @@ export default function Dashboard({ user, onNavigate }) {
 
   const [actionError, setActionError] = useState("");
 
+  const [markingSold, setMarkingSold] = useState({});
+
+  const [listingError, setListingError] = useState("");
+
+  // ==========================================
+  // MARK A LISTING AS SOLD
+  // ==========================================
+
+  const handleMarkSold = async (listing) => {
+    const token = localStorage.getItem("agriconnect_token");
+
+    if (!token) {
+      setListingError("Your session has expired. Please login again.");
+      return;
+    }
+
+    setListingError("");
+
+    setMarkingSold((prev) => ({
+      ...prev,
+      [listing._id]: true,
+    }));
+
+    try {
+      const response = await fetch(`${API_URL}/listings/${listing._id}`, {
+        method: "PUT",
+
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+
+        body: JSON.stringify({ status: "sold" }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(
+          data?.message || "Unable to mark listing as sold."
+        );
+      }
+
+      await fetchDashboard();
+    } catch (err) {
+      console.error("Mark sold error:", err);
+
+      setListingError(
+        err.message || "Unable to mark listing as sold."
+      );
+    } finally {
+      setMarkingSold((prev) => ({
+        ...prev,
+        [listing._id]: false,
+      }));
+    }
+  };
+
   // ==========================================
   // EXPRESS INTEREST IN A BUYER REQUEST
   // ==========================================
@@ -375,6 +433,12 @@ export default function Dashboard({ user, onNavigate }) {
             }
           />
 
+          {listingError && (
+            <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-700">
+              {listingError}
+            </div>
+          )}
+
           <div className="mt-6 space-y-3">
 
             {recentListings.length === 0 ? (
@@ -468,6 +532,18 @@ export default function Dashboard({ user, onNavigate }) {
                     </p>
 
                   </div>
+
+                  {listing.status === "active" && (
+                    <button
+                      onClick={() => handleMarkSold(listing)}
+                      disabled={markingSold[listing._id]}
+                      className="shrink-0 rounded-xl border border-emerald-200 px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {markingSold[listing._id]
+                        ? "Saving..."
+                        : "Mark as sold"}
+                    </button>
+                  )}
 
                 </div>
 

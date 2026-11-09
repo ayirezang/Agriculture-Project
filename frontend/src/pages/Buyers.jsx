@@ -14,7 +14,8 @@ import {
 import Badge from "../components/ui/Badge";
 import SectionHeader from "../components/ui/SectionHeader";
 
-const API_URL = "/api";
+const API_URL =
+  import.meta.env.VITE_API_URL || "/api";
 
 export default function Buyers({ onRegisterBuyer }) {
   const [buyers, setBuyers] = useState([]);
